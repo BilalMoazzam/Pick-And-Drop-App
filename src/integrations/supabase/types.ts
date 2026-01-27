@@ -96,6 +96,7 @@ export type Database = {
       }
       rides: {
         Row: {
+          attendance: string
           created_at: string
           drop_location: string
           drop_time: string | null
@@ -110,6 +111,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          attendance?: string
           created_at?: string
           drop_location: string
           drop_time?: string | null
@@ -124,6 +126,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          attendance?: string
           created_at?: string
           drop_location?: string
           drop_time?: string | null

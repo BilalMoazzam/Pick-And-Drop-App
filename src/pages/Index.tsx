@@ -16,6 +16,7 @@ const Index = () => {
     addRide, 
     completeRide, 
     deleteRide,
+    updateAttendance,
     getTodayRides, 
     getWeekRides, 
     getMonthRides, 
@@ -46,6 +47,10 @@ const Index = () => {
 
   const handleCancelRide = async (rideId: string) => {
     await deleteRide(rideId);
+  };
+
+  const handleToggleAttendance = async (rideId: string, attendance: 'present' | 'absent') => {
+    await updateAttendance(rideId, attendance);
   };
 
   const getGreeting = () => {
@@ -138,6 +143,7 @@ const Index = () => {
                 ride={ride}
                 onComplete={handleCompleteRide}
                 onCancel={handleCancelRide}
+                onToggleAttendance={handleToggleAttendance}
               />
             ))}
             

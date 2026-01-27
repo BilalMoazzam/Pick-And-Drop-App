@@ -1,11 +1,13 @@
-import { useState } from 'react';
-import { ArrowLeft, Plus, User, Phone, MapPin, Building, Search, Trash2, Edit } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { ArrowLeft, Plus, User, Phone, MapPin, Building, Search, Trash2, Edit, Users, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BottomNav } from '@/components/BottomNav';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +19,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { usePassengers, Passenger, NewPassenger } from '@/hooks/usePassengers';
+import { cn } from '@/lib/utils';
 
 const PassengersPage = () => {
   const navigate = useNavigate();
@@ -26,6 +29,7 @@ const PassengersPage = () => {
   const [editingPassenger, setEditingPassenger] = useState<Passenger | null>(null);
   const [deletingPassenger, setDeletingPassenger] = useState<Passenger | null>(null);
   const [formLoading, setFormLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('regular');
   
   const [formData, setFormData] = useState<NewPassenger>({
     name: '',
@@ -37,10 +41,17 @@ const PassengersPage = () => {
     is_regular: true,
   });
 
-  const filteredPassengers = passengers.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.phone.includes(searchQuery)
-  );
+  // Separate regular and random passengers
+  const { regularPassengers, randomPassengers } = useMemo(() => {
+    const filtered = passengers.filter(p => 
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.phone.includes(searchQuery)
+    );
+    return {
+      regularPassengers: filtered.filter(p => p.is_regular),
+      randomPassengers: filtered.filter(p => !p.is_regular),
+    };
+  }, [passengers, searchQuery]);
 
   const resetForm = () => {
     setFormData({
@@ -50,7 +61,7 @@ const PassengersPage = () => {
       pickup_location: '',
       drop_location: '',
       school_office_info: '',
-      is_regular: true,
+      is_regular: activeTab === 'regular',
     });
     setEditingPassenger(null);
   };
@@ -98,6 +109,116 @@ const PassengersPage = () => {
     }
   };
 
+  const renderPassengerList = (passengerList: Passenger[], emptyMessage: string, emptyIcon: React.ReactNode) => {
+    if (loading) {
+      return (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="card-warm animate-pulse">
+              <div className="h-16 bg-muted rounded-lg" />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (passengerList.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <div className="w-20 h-20 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
+            {emptyIcon}
+          </div>
+          <h3 className="text-xl font-bold text-foreground mb-2">
+            {searchQuery ? 'No clients found' : emptyMessage}
+          </h3>
+          <p className="text-muted-foreground mb-4">
+            {searchQuery ? 'Try a different search' : 'Add your first client'}
+          </p>
+          {!searchQuery && (
+            <Button onClick={() => handleOpenSheet()}>
+              <Plus className="w-5 h-5" />
+              Add Client
+            </Button>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        {passengerList.map((passenger) => (
+          <div key={passenger.id} className="card-warm animate-fade-in">
+            <div className="flex items-start justify-between">
+              <div className="flex items-start gap-3">
+                <div className={cn(
+                  "w-12 h-12 rounded-full flex items-center justify-center shrink-0",
+                  passenger.is_regular ? "bg-primary/10" : "bg-warning/10"
+                )}>
+                  {passenger.is_regular ? (
+                    <Users className="w-6 h-6 text-primary" />
+                  ) : (
+                    <UserPlus className="w-6 h-6 text-warning" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-lg text-foreground truncate">
+                      {passenger.name}
+                    </h3>
+                    <span className={cn(
+                      "text-xs px-2 py-0.5 rounded-full font-semibold",
+                      passenger.is_regular ? "bg-primary/15 text-primary" : "bg-warning/15 text-warning"
+                    )}>
+                      {passenger.is_regular ? 'Regular' : 'Random'}
+                    </span>
+                  </div>
+                  <p className="text-muted-foreground flex items-center gap-1">
+                    <Phone className="w-3 h-3" />
+                    {passenger.phone}
+                  </p>
+                  {passenger.profession && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Building className="w-3 h-3" />
+                      {passenger.profession}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10"
+                  onClick={() => handleOpenSheet(passenger)}
+                >
+                  <Edit className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 text-destructive hover:text-destructive"
+                  onClick={() => setDeletingPassenger(passenger)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-border">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                <MapPin className="w-3 h-3 text-success" />
+                <span className="truncate">{passenger.pickup_location}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <MapPin className="w-3 h-3 text-destructive" />
+                <span className="truncate">{passenger.drop_location}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background safe-bottom">
       {/* Header */}
@@ -110,7 +231,7 @@ const PassengersPage = () => {
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <h1 className="text-2xl font-bold">Passengers</h1>
+            <h1 className="text-2xl font-bold">Clients</h1>
           </div>
           <Button size="sm" onClick={() => handleOpenSheet()}>
             <Plus className="w-4 h-4" />
@@ -119,7 +240,7 @@ const PassengersPage = () => {
         </div>
 
         {/* Search */}
-        <div className="relative">
+        <div className="relative mb-4">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
             className="input-elderly pl-12"
@@ -128,93 +249,33 @@ const PassengersPage = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="w-full h-12">
+            <TabsTrigger value="regular" className="flex-1 text-base">
+              <Users className="w-4 h-4 mr-2" />
+              Regular ({regularPassengers.length})
+            </TabsTrigger>
+            <TabsTrigger value="random" className="flex-1 text-base">
+              <UserPlus className="w-4 h-4 mr-2" />
+              Random ({randomPassengers.length})
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </header>
 
       {/* Passengers List */}
       <main className="px-5 py-6">
-        {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="card-warm animate-pulse">
-                <div className="h-16 bg-muted rounded-lg" />
-              </div>
-            ))}
-          </div>
-        ) : filteredPassengers.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-20 h-20 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
-              <User className="w-10 h-10 text-muted-foreground" />
-            </div>
-            <h3 className="text-xl font-bold text-foreground mb-2">
-              {searchQuery ? 'No passengers found' : 'No passengers yet'}
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              {searchQuery ? 'Try a different search' : 'Add your first passenger'}
-            </p>
-            {!searchQuery && (
-              <Button onClick={() => handleOpenSheet()}>
-                <Plus className="w-5 h-5" />
-                Add Passenger
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredPassengers.map((passenger) => (
-              <div key={passenger.id} className="card-warm animate-fade-in">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <User className="w-6 h-6 text-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="font-bold text-lg text-foreground truncate">
-                        {passenger.name}
-                      </h3>
-                      <p className="text-muted-foreground flex items-center gap-1">
-                        <Phone className="w-3 h-3" />
-                        {passenger.phone}
-                      </p>
-                      {passenger.profession && (
-                        <p className="text-sm text-muted-foreground flex items-center gap-1">
-                          <Building className="w-3 h-3" />
-                          {passenger.profession}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-10 w-10"
-                      onClick={() => handleOpenSheet(passenger)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-10 w-10 text-destructive hover:text-destructive"
-                      onClick={() => setDeletingPassenger(passenger)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="mt-3 pt-3 border-t border-border">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                    <MapPin className="w-3 h-3 text-success" />
-                    <span className="truncate">{passenger.pickup_location}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MapPin className="w-3 h-3 text-destructive" />
-                    <span className="truncate">{passenger.drop_location}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+        {activeTab === 'regular' && renderPassengerList(
+          regularPassengers, 
+          'No regular clients yet',
+          <Users className="w-10 h-10 text-muted-foreground" />
+        )}
+        {activeTab === 'random' && renderPassengerList(
+          randomPassengers, 
+          'No random clients yet',
+          <UserPlus className="w-10 h-10 text-muted-foreground" />
         )}
       </main>
 
@@ -223,11 +284,25 @@ const PassengersPage = () => {
         <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl">
           <SheetHeader className="pb-4">
             <SheetTitle className="text-2xl font-bold">
-              {editingPassenger ? 'Edit Passenger' : 'Add Passenger'}
+              {editingPassenger ? 'Edit Client' : 'Add Client'}
             </SheetTitle>
           </SheetHeader>
 
           <div className="space-y-4 overflow-y-auto pb-6">
+            {/* Client Type Toggle */}
+            <div className="flex items-center justify-between p-4 bg-muted rounded-xl">
+              <div>
+                <Label className="text-base font-semibold">Regular Client</Label>
+                <p className="text-sm text-muted-foreground">
+                  {formData.is_regular ? 'Permanent/recurring client' : 'One-time pickup'}
+                </p>
+              </div>
+              <Switch
+                checked={formData.is_regular}
+                onCheckedChange={(checked) => setFormData({ ...formData, is_regular: checked })}
+              />
+            </div>
+
             <div className="space-y-2">
               <Label className="text-base font-semibold flex items-center gap-2">
                 <User className="w-4 h-4" /> Name *
@@ -305,7 +380,7 @@ const PassengersPage = () => {
               onClick={handleSubmit}
               disabled={formLoading || !formData.name || !formData.phone || !formData.pickup_location || !formData.drop_location}
             >
-              {formLoading ? 'Saving...' : editingPassenger ? 'Update Passenger' : 'Add Passenger'}
+              {formLoading ? 'Saving...' : editingPassenger ? 'Update Client' : 'Add Client'}
             </Button>
           </div>
         </SheetContent>
@@ -315,7 +390,7 @@ const PassengersPage = () => {
       <AlertDialog open={!!deletingPassenger} onOpenChange={(open) => !open && setDeletingPassenger(null)}>
         <AlertDialogContent className="rounded-3xl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl">Delete Passenger?</AlertDialogTitle>
+            <AlertDialogTitle className="text-xl">Delete Client?</AlertDialogTitle>
             <AlertDialogDescription className="text-base">
               Are you sure you want to delete <strong>{deletingPassenger?.name}</strong>? 
               This action cannot be undone.

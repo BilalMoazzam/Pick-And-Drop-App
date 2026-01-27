@@ -13,6 +13,7 @@ export interface Ride {
   drop_time?: string;
   fare: number;
   status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  attendance: 'present' | 'absent';
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -27,6 +28,7 @@ export interface NewRide {
   drop_time?: string;
   fare?: number;
   status?: string;
+  attendance?: string;
   notes?: string;
 }
 
@@ -100,6 +102,32 @@ export function useRides() {
     } catch (error: any) {
       toast({
         title: "Error updating ride",
+        description: error.message,
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
+  const updateAttendance = async (id: string, attendance: 'present' | 'absent') => {
+    try {
+      const { data, error } = await supabase
+        .from('rides')
+        .update({ attendance })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setRides(prev => prev.map(r => r.id === id ? data as Ride : r));
+      toast({
+        title: attendance === 'present' ? "Marked Present ✓" : "Marked Absent ✗",
+      });
+      return data;
+    } catch (error: any) {
+      toast({
+        title: "Error updating attendance",
         description: error.message,
         variant: "destructive",
       });
@@ -220,6 +248,7 @@ export function useRides() {
     loading,
     addRide,
     updateRide,
+    updateAttendance,
     completeRide,
     deleteRide,
     getTodayRides,
