@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, Users, Car, UserCheck, UserX } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, UserCheck, UserX, Minus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, getDay, addMonths, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths } from 'date-fns';
 import { BottomNav } from '@/components/BottomNav';
 import { Button } from '@/components/ui/button';
 import { useRides } from '@/hooks/useRides';
@@ -13,40 +13,45 @@ const CalendarPage = () => {
   const { rides } = useRides();
   const { passengers } = usePassengers();
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const regularPassengers = passengers.filter(p => p.is_regular);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
-  
-  // Get the starting day offset (0 = Sunday)
-  const startDayOffset = getDay(monthStart);
 
-  // Get rides for a specific date
-  const getRidesForDate = (date: Date) => {
-    return rides.filter(ride => {
-      const rideDate = new Date(ride.pickup_time);
-      return isSameDay(rideDate, date);
+  // Get ride status for a specific passenger on a specific date
+  const getRideStatus = (passengerId: string, date: Date): 'present' | 'absent' | 'none' => {
+    const ride = rides.find(r => {
+      const rideDate = new Date(r.pickup_time);
+      return r.passenger_id === passengerId && isSameDay(rideDate, date) && r.status === 'completed';
     });
+    
+    if (!ride) return 'none';
+    return ride.attendance === 'absent' ? 'absent' : 'present';
   };
 
-  // Get rides for selected date
-  const selectedDateRides = useMemo(() => {
-    if (!selectedDate) return [];
-    return getRidesForDate(selectedDate);
-  }, [selectedDate, rides]);
+  // Calculate totals for each passenger
+  const getPassengerStats = (passengerId: string) => {
+    let present = 0;
+    let absent = 0;
+    
+    days.forEach(day => {
+      const status = getRideStatus(passengerId, day);
+      if (status === 'present') present++;
+      if (status === 'absent') absent++;
+    });
+    
+    return { present, absent };
+  };
 
   const goToPreviousMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
   const goToNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
 
-  const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
   return (
     <div className="min-h-screen bg-background safe-bottom">
       {/* Header */}
-      <header className="gradient-warm px-5 pt-6 pb-6">
+      <header className="gradient-warm px-5 pt-6 pb-4">
         <div className="flex items-center gap-3 mb-4">
           <button 
             onClick={() => navigate('/')}
@@ -55,29 +60,13 @@ const CalendarPage = () => {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold">Calendar</h1>
-            <p className="text-muted-foreground">Monthly ride overview</p>
+            <h1 className="text-2xl font-bold">Attendance Calendar</h1>
+            <p className="text-muted-foreground">Monthly overview</p>
           </div>
         </div>
 
-        {/* Regular Clients Count */}
-        <div className="card-warm p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-              <Users className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Regular Clients</p>
-              <p className="text-2xl font-bold">{regularPassengers.length}</p>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="px-5 py-6">
         {/* Month Navigation */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between bg-card rounded-xl p-3">
           <Button variant="ghost" size="icon" onClick={goToPreviousMonth}>
             <ChevronLeft className="w-6 h-6" />
           </Button>
@@ -86,129 +75,141 @@ const CalendarPage = () => {
             <ChevronRight className="w-6 h-6" />
           </Button>
         </div>
+      </header>
 
-        {/* Calendar Grid */}
-        <div className="card-warm p-4 mb-6">
-          {/* Week Days Header */}
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {weekDays.map(day => (
-              <div key={day} className="text-center text-sm font-semibold text-muted-foreground py-2">
-                {day}
-              </div>
-            ))}
-          </div>
-
-          {/* Days Grid */}
-          <div className="grid grid-cols-7 gap-1">
-            {/* Empty cells for offset */}
-            {Array.from({ length: startDayOffset }).map((_, i) => (
-              <div key={`empty-${i}`} className="aspect-square" />
-            ))}
-            
-            {days.map(day => {
-              const dayRides = getRidesForDate(day);
-              const hasRides = dayRides.length > 0;
-              const completedRides = dayRides.filter(r => r.status === 'completed').length;
-              const isSelected = selectedDate && isSameDay(day, selectedDate);
-              
-              return (
-                <button
-                  key={day.toISOString()}
-                  onClick={() => setSelectedDate(day)}
-                  className={cn(
-                    "aspect-square rounded-lg flex flex-col items-center justify-center text-sm font-medium transition-colors relative",
-                    isToday(day) && "bg-primary text-primary-foreground",
-                    !isToday(day) && isSelected && "bg-primary/20 border-2 border-primary",
-                    !isToday(day) && !isSelected && "hover:bg-muted",
-                    hasRides && !isToday(day) && "font-bold"
-                  )}
-                >
-                  {format(day, 'd')}
-                  {hasRides && (
-                    <div className="flex gap-0.5 mt-0.5">
-                      <div className={cn(
-                        "w-1.5 h-1.5 rounded-full",
-                        completedRides > 0 ? "bg-success" : "bg-info"
-                      )} />
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Selected Date Details */}
-        {selectedDate && (
-          <div className="space-y-3">
-            <h3 className="text-lg font-bold">
-              {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+      {/* Main Content - Scrollable Grid */}
+      <main className="px-3 py-4">
+        {regularPassengers.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-20 h-20 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
+              <UserCheck className="w-10 h-10 text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-bold text-foreground mb-2">
+              No regular clients
             </h3>
-            
-            {selectedDateRides.length === 0 ? (
-              <div className="card-warm p-6 text-center">
-                <Car className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
-                <p className="text-muted-foreground">No rides on this day</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {selectedDateRides.map(ride => (
-                  <div key={ride.id} className="card-warm p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "w-10 h-10 rounded-full flex items-center justify-center",
-                          ride.attendance === 'present' ? "bg-success/20" : "bg-destructive/20"
-                        )}>
-                          {ride.attendance === 'present' ? (
-                            <UserCheck className="w-5 h-5 text-success" />
-                          ) : (
-                            <UserX className="w-5 h-5 text-destructive" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-bold">{ride.passenger_name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(ride.pickup_time), 'h:mm a')} • {ride.status}
-                          </p>
-                        </div>
-                      </div>
-                      {ride.status === 'completed' && (
-                        <span className="font-bold text-success">SAR {Number(ride.fare).toFixed(0)}</span>
+            <p className="text-muted-foreground">
+              Add regular clients to see attendance
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse min-w-max">
+              <thead>
+                <tr>
+                  {/* Client Name Header */}
+                  <th className="sticky left-0 z-10 bg-card border border-border p-2 text-left font-bold text-sm min-w-[120px]">
+                    Regular Client
+                  </th>
+                  {/* Date Headers */}
+                  {days.map(day => (
+                    <th 
+                      key={day.toISOString()} 
+                      className={cn(
+                        "border border-border p-1 text-center font-semibold text-xs min-w-[36px]",
+                        isToday(day) && "bg-primary text-primary-foreground"
                       )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                    >
+                      <div>{format(day, 'd')}</div>
+                      <div className="text-[10px] opacity-70">{format(day, 'EEE').charAt(0)}</div>
+                    </th>
+                  ))}
+                  {/* Totals Headers */}
+                  <th className="border border-border p-1 text-center font-semibold text-xs min-w-[36px] bg-success/20">
+                    ✓
+                  </th>
+                  <th className="border border-border p-1 text-center font-semibold text-xs min-w-[36px] bg-destructive/20">
+                    ✗
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {regularPassengers.map(passenger => {
+                  const stats = getPassengerStats(passenger.id);
+                  return (
+                    <tr key={passenger.id}>
+                      {/* Client Name */}
+                      <td className="sticky left-0 z-10 bg-card border border-border p-2 font-medium text-sm truncate max-w-[120px]">
+                        {passenger.name}
+                      </td>
+                      {/* Daily Status */}
+                      {days.map(day => {
+                        const status = getRideStatus(passenger.id, day);
+                        return (
+                          <td 
+                            key={day.toISOString()} 
+                            className={cn(
+                              "border border-border p-1 text-center",
+                              status === 'present' && "bg-success/20",
+                              status === 'absent' && "bg-destructive/20",
+                              isToday(day) && status === 'none' && "bg-primary/10"
+                            )}
+                          >
+                            {status === 'present' && (
+                              <UserCheck className="w-4 h-4 text-success mx-auto" />
+                            )}
+                            {status === 'absent' && (
+                              <UserX className="w-4 h-4 text-destructive mx-auto" />
+                            )}
+                            {status === 'none' && (
+                              <Minus className="w-3 h-3 text-muted-foreground/30 mx-auto" />
+                            )}
+                          </td>
+                        );
+                      })}
+                      {/* Totals */}
+                      <td className="border border-border p-1 text-center font-bold text-sm bg-success/20 text-success">
+                        {stats.present}
+                      </td>
+                      <td className="border border-border p-1 text-center font-bold text-sm bg-destructive/20 text-destructive">
+                        {stats.absent}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
 
-        {/* Regular Clients List */}
-        <div className="mt-8">
-          <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
-            <Users className="w-5 h-5 text-primary" />
-            Regular Clients
-          </h3>
-          {regularPassengers.length === 0 ? (
-            <div className="card-warm p-6 text-center">
-              <p className="text-muted-foreground">No regular clients yet</p>
+        {/* Legend */}
+        <div className="mt-6 card-warm p-4">
+          <h3 className="font-bold mb-3">Legend</h3>
+          <div className="flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded bg-success/20 flex items-center justify-center">
+                <UserCheck className="w-4 h-4 text-success" />
+              </div>
+              <span>Present</span>
             </div>
-          ) : (
-            <div className="space-y-2">
-              {regularPassengers.map(passenger => (
-                <div key={passenger.id} className="card-warm p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                    <Users className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-bold">{passenger.name}</p>
-                    <p className="text-sm text-muted-foreground">{passenger.pickup_location} → {passenger.drop_location}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded bg-destructive/20 flex items-center justify-center">
+                <UserX className="w-4 h-4 text-destructive" />
+              </div>
+              <span>Absent</span>
             </div>
-          )}
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded bg-muted flex items-center justify-center">
+                <Minus className="w-3 h-3 text-muted-foreground/30" />
+              </div>
+              <span>No ride</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Summary Stats */}
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="card-warm p-4 text-center">
+            <p className="text-3xl font-bold text-success">
+              {regularPassengers.reduce((sum, p) => sum + getPassengerStats(p.id).present, 0)}
+            </p>
+            <p className="text-sm text-muted-foreground">Total Present</p>
+          </div>
+          <div className="card-warm p-4 text-center">
+            <p className="text-3xl font-bold text-destructive">
+              {regularPassengers.reduce((sum, p) => sum + getPassengerStats(p.id).absent, 0)}
+            </p>
+            <p className="text-sm text-muted-foreground">Total Absent</p>
+          </div>
         </div>
       </main>
 

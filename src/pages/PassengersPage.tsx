@@ -281,14 +281,14 @@ const PassengersPage = () => {
 
       {/* Add/Edit Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl">
-          <SheetHeader className="pb-4">
+        <SheetContent side="bottom" className="h-[90vh] rounded-t-3xl flex flex-col">
+          <SheetHeader className="pb-4 flex-shrink-0">
             <SheetTitle className="text-2xl font-bold">
               {editingPassenger ? 'Edit Client' : 'Add Client'}
             </SheetTitle>
           </SheetHeader>
 
-          <div className="space-y-4 overflow-y-auto pb-6">
+          <div className="flex-1 overflow-y-auto space-y-4 pb-4">
             {/* Client Type Toggle */}
             <div className="flex items-center justify-between p-4 bg-muted rounded-xl">
               <div>
@@ -373,7 +373,10 @@ const PassengersPage = () => {
                 onChange={(e) => setFormData({ ...formData, school_office_info: e.target.value })}
               />
             </div>
+          </div>
 
+          {/* Fixed Submit Button */}
+          <div className="flex-shrink-0 pt-4 border-t border-border">
             <Button
               className="w-full"
               size="lg"
