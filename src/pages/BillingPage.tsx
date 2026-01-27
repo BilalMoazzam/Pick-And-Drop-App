@@ -18,9 +18,15 @@ const BillingPage = () => {
 
   const currentMonth = format(new Date(), 'MMMM yyyy');
 
-  // Calculate per-passenger billing for the current month
+  // Calculate per-passenger billing for the current month with ride details
   const passengerBilling = useMemo(() => {
-    const billing: Record<string, { name: string; rides: number; total: number; phone: string }> = {};
+    const billing: Record<string, { 
+      name: string; 
+      rides: number; 
+      total: number; 
+      phone: string;
+      rideDetails: Array<{ date: string; fare: number; attendance: string }>;
+    }> = {};
     
     monthRides.forEach(ride => {
       if (ride.status === 'completed') {
@@ -32,24 +38,49 @@ const BillingPage = () => {
             rides: 0,
             total: 0,
             phone: passenger?.phone || '',
+            rideDetails: [],
           };
         }
         billing[key].rides += 1;
         billing[key].total += Number(ride.fare);
+        billing[key].rideDetails.push({
+          date: format(new Date(ride.pickup_time), 'dd MMM'),
+          fare: Number(ride.fare),
+          attendance: ride.attendance || 'present',
+        });
       }
     });
 
     return Object.values(billing).sort((a, b) => b.total - a.total);
   }, [monthRides, passengers]);
 
-  const handleSendWhatsApp = (name: string, phone: string, rides: number, total: number) => {
+  const handleSendWhatsApp = (name: string, phone: string, rideDetails: Array<{ date: string; fare: number; attendance: string }>, total: number) => {
+    // Build detailed ride breakdown
+    const rideBreakdown = rideDetails
+      .filter(r => r.attendance === 'present')
+      .map(r => `   📅 ${r.date} → SAR ${r.fare.toFixed(0)}`)
+      .join('\n');
+    
+    const absentDays = rideDetails.filter(r => r.attendance === 'absent');
+    const absentSection = absentDays.length > 0 
+      ? `\n\n❌ Absent Days:\n${absentDays.map(r => `   ${r.date}`).join('\n')}`
+      : '';
+
     const message = encodeURIComponent(
-      `🚗 Monthly Bill - ${currentMonth}\n\n` +
-      `Dear ${name},\n\n` +
-      `Total Rides: ${rides}\n` +
-      `Total Amount: SAR ${total.toFixed(2)}\n\n` +
-      `Thank you for using our service!\n` +
-      `- Pick & Drop Service`
+      `━━━━━━━━━━━━━━━━━━━━━\n` +
+      `🚗 *MONTHLY BILL*\n` +
+      `📆 ${currentMonth}\n` +
+      `━━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `👤 *${name}*\n\n` +
+      `📋 *Ride Details:*\n` +
+      `${rideBreakdown}` +
+      `${absentSection}\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━━\n` +
+      `✅ Total Rides: ${rideDetails.filter(r => r.attendance === 'present').length}\n` +
+      `💰 *Total Amount: SAR ${total.toFixed(0)}*\n` +
+      `━━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `Thank you for choosing us! 🙏\n` +
+      `_Pick & Drop Service_ 🚙`
     );
     
     // Clean phone number
@@ -152,11 +183,26 @@ const BillingPage = () => {
                   </span>
                 </div>
                 
+                {/* Ride Details */}
+                <div className="mb-3 p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm font-semibold text-muted-foreground mb-2">Ride Breakdown:</p>
+                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                    {bill.rideDetails.map((detail, idx) => (
+                      <div key={idx} className="flex justify-between text-sm">
+                        <span className={detail.attendance === 'absent' ? 'text-destructive line-through' : ''}>
+                          📅 {detail.date} {detail.attendance === 'absent' && '(Absent)'}
+                        </span>
+                        <span className="font-semibold">SAR {detail.fare.toFixed(0)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 {bill.phone && (
                   <Button
                     variant="outline"
                     className="w-full border-success text-success hover:bg-success/10"
-                    onClick={() => handleSendWhatsApp(bill.name, bill.phone, bill.rides, bill.total)}
+                    onClick={() => handleSendWhatsApp(bill.name, bill.phone, bill.rideDetails, bill.total)}
                   >
                     <MessageCircle className="w-5 h-5" />
                     Send Bill via WhatsApp
