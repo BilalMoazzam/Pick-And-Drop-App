@@ -5,7 +5,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { RideCard } from '@/components/RideCard';
 import { StatCard } from '@/components/StatCard';
 import { AddActionMenu } from '@/components/AddActionMenu';
-import { AddClientSheet } from '@/components/AddClientSheet';
+import { AddRideSheet } from '@/components/AddRideSheet';
 import { CompleteRideDialog } from '@/components/CompleteRideDialog';
 import { useRides, Ride } from '@/hooks/useRides';
 import { usePassengers } from '@/hooks/usePassengers';
@@ -23,11 +23,10 @@ const Index = () => {
     getMonthRides, 
     getEarnings 
   } = useRides();
-  const { passengers, addPassenger } = usePassengers();
+  const { passengers } = usePassengers();
   
   const [completingRide, setCompletingRide] = useState<Ride | null>(null);
-  const [addClientOpen, setAddClientOpen] = useState(false);
-  const [isAddingRegular, setIsAddingRegular] = useState(true);
+  const [addRideOpen, setAddRideOpen] = useState(false);
 
   const todayRides = getTodayRides();
   const scheduledToday = todayRides.filter(r => r.status === 'scheduled');
@@ -56,14 +55,8 @@ const Index = () => {
     await updateAttendance(rideId, attendance);
   };
 
-  const handleAddRegular = () => {
-    setIsAddingRegular(true);
-    setAddClientOpen(true);
-  };
-
-  const handleAddRandom = () => {
-    setIsAddingRegular(false);
-    setAddClientOpen(true);
+  const handleAddRide = () => {
+    setAddRideOpen(true);
   };
 
   const getGreeting = () => {
@@ -181,17 +174,14 @@ const Index = () => {
       </main>
 
       {/* Floating Action Menu */}
-      <AddActionMenu 
-        onAddRegular={handleAddRegular}
-        onAddRandom={handleAddRandom}
-      />
+      <AddActionMenu onAddRide={handleAddRide} />
 
-      {/* Add Client Sheet */}
-      <AddClientSheet
-        open={addClientOpen}
-        onOpenChange={setAddClientOpen}
-        isRegular={isAddingRegular}
-        onAddClient={addPassenger}
+      {/* Add Ride Sheet */}
+      <AddRideSheet
+        open={addRideOpen}
+        onOpenChange={setAddRideOpen}
+        passengers={passengers}
+        onAddRide={addRide}
       />
 
       {/* Complete Ride Dialog */}

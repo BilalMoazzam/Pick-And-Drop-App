@@ -50,19 +50,28 @@ const CalendarPage = () => {
     return { present, absent };
   };
 
-  // Overall stats
+  // Overall stats including total earnings
   const overallStats = useMemo(() => {
     let totalPresent = 0;
     let totalAbsent = 0;
+    let totalEarnings = 0;
     
     regularPassengers.forEach(p => {
       const stats = getPassengerStats(p.id);
       totalPresent += stats.present;
       totalAbsent += stats.absent;
     });
+
+    // Calculate earnings for the month
+    rides.forEach(ride => {
+      const rideDate = new Date(ride.pickup_time);
+      if (rideDate >= monthStart && rideDate <= monthEnd && ride.status === 'completed' && ride.attendance === 'present') {
+        totalEarnings += Number(ride.fare) || 0;
+      }
+    });
     
-    return { totalPresent, totalAbsent };
-  }, [regularPassengers, rides, days]);
+    return { totalPresent, totalAbsent, totalEarnings };
+  }, [regularPassengers, rides, days, monthStart, monthEnd]);
 
   const goToPreviousMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
   const goToNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
@@ -226,6 +235,14 @@ const CalendarPage = () => {
                 </p>
                 <p className="text-sm text-muted-foreground">Absent Days</p>
               </div>
+            </div>
+
+            {/* Total Earnings */}
+            <div className="bg-primary/10 rounded-2xl p-5 text-center">
+              <p className="text-sm text-muted-foreground mb-1">Total Earnings This Month</p>
+              <p className="text-4xl font-bold text-primary">
+                SAR {overallStats.totalEarnings.toFixed(0)}
+              </p>
             </div>
 
             {/* Legend */}

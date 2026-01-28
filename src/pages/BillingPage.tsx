@@ -257,7 +257,7 @@ const BillingPage = () => {
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {passengerBilling.map((bill, index) => (
               <BillingCard
                 key={index}
@@ -266,6 +266,7 @@ const BillingPage = () => {
                 rides={bill.rides}
                 total={bill.total}
                 rideDetails={bill.rideDetails}
+                currentMonth={currentMonth}
                 onSendWhatsApp={() => handleSendWhatsApp(bill.name, bill.phone, bill.rideDetails, bill.total)}
               />
             ))}
