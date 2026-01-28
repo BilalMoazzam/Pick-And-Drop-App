@@ -1,13 +1,15 @@
 import { useState, useMemo } from 'react';
-import { ArrowLeft, Receipt, Calendar, TrendingUp, MessageCircle, Download } from 'lucide-react';
+import { ArrowLeft, Receipt, TrendingUp, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { format, startOfMonth, endOfMonth, getMonth, getYear } from 'date-fns';
+import { format } from 'date-fns';
 import { BottomNav } from '@/components/BottomNav';
 import { Button } from '@/components/ui/button';
 import { StatCard } from '@/components/StatCard';
+import { BillingCard } from '@/components/BillingCard';
 import { useRides } from '@/hooks/useRides';
 import { usePassengers } from '@/hooks/usePassengers';
-import { cn } from '@/lib/utils';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const BillingPage = () => {
   const navigate = useNavigate();
@@ -88,33 +90,120 @@ const BillingPage = () => {
     window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
   };
 
-  const handleExportCSV = () => {
-    const headers = ['Passenger', 'Rides', 'Total (SAR)'];
-    const rows = passengerBilling.map(b => [b.name, b.rides, b.total]);
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
     
-    const csvContent = [
-      `Monthly Billing Report - ${currentMonth}`,
-      '',
-      headers.join(','),
-      ...rows.map(r => r.join(',')),
-      '',
-      `Total Earnings: SAR ${earnings.month}`,
-      `Total Rides: ${monthRides.filter(r => r.status === 'completed').length}`,
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `billing-${format(new Date(), 'yyyy-MM')}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    // Title
+    doc.setFontSize(20);
+    doc.setTextColor(40, 40, 40);
+    doc.text('Monthly Billing Report', 14, 20);
+    
+    // Subtitle
+    doc.setFontSize(12);
+    doc.setTextColor(100, 100, 100);
+    doc.text(currentMonth, 14, 28);
+    
+    // Summary Stats
+    doc.setFontSize(14);
+    doc.setTextColor(40, 40, 40);
+    doc.text('Summary', 14, 42);
+    
+    doc.setFontSize(11);
+    doc.text(`Total Rides: ${monthRides.filter(r => r.status === 'completed').length}`, 14, 50);
+    doc.text(`Total Passengers: ${passengerBilling.length}`, 14, 57);
+    doc.text(`Total Earnings: SAR ${earnings.month.toFixed(0)}`, 14, 64);
+    
+    // Passenger Billing Table
+    doc.setFontSize(14);
+    doc.text('Passenger Bills', 14, 80);
+    
+    const tableData = passengerBilling.map(bill => [
+      bill.name,
+      bill.phone || '-',
+      bill.rides.toString(),
+      `SAR ${bill.total.toFixed(0)}`,
+    ]);
+    
+    autoTable(doc, {
+      startY: 85,
+      head: [['Client Name', 'Phone', 'Rides', 'Total']],
+      body: tableData,
+      headStyles: {
+        fillColor: [59, 130, 246],
+        textColor: 255,
+        fontSize: 11,
+        fontStyle: 'bold',
+      },
+      bodyStyles: {
+        fontSize: 10,
+      },
+      alternateRowStyles: {
+        fillColor: [245, 247, 250],
+      },
+    });
+    
+    // Detailed breakdown for each passenger
+    let yPos = (doc as any).lastAutoTable.finalY + 15;
+    
+    passengerBilling.forEach((bill, index) => {
+      // Check if we need a new page
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      doc.setFontSize(12);
+      doc.setTextColor(40, 40, 40);
+      doc.text(`${index + 1}. ${bill.name}`, 14, yPos);
+      yPos += 7;
+      
+      const detailData = bill.rideDetails.map(detail => [
+        detail.date,
+        detail.attendance === 'present' ? 'Present' : 'Absent',
+        detail.attendance === 'present' ? `SAR ${detail.fare.toFixed(0)}` : '-',
+      ]);
+      
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Date', 'Status', 'Fare']],
+        body: detailData,
+        headStyles: {
+          fillColor: [100, 116, 139],
+          textColor: 255,
+          fontSize: 9,
+        },
+        bodyStyles: {
+          fontSize: 9,
+        },
+        margin: { left: 14, right: 14 },
+        tableWidth: 100,
+      });
+      
+      yPos = (doc as any).lastAutoTable.finalY + 10;
+      
+      doc.setFontSize(10);
+      doc.setTextColor(34, 197, 94);
+      doc.text(`Total: SAR ${bill.total.toFixed(0)}`, 14, yPos);
+      yPos += 15;
+    });
+    
+    // Footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text(`Pick & Drop Service - Generated on ${format(new Date(), 'dd MMM yyyy, HH:mm')}`, 14, 290);
+      doc.text(`Page ${i} of ${pageCount}`, 180, 290);
+    }
+    
+    doc.save(`billing-${format(new Date(), 'yyyy-MM')}.pdf`);
   };
 
   return (
-    <div className="min-h-screen bg-background safe-bottom">
+    <div className="min-h-screen bg-background safe-bottom flex flex-col">
       {/* Header */}
-      <header className="gradient-warm px-5 pt-6 pb-8">
+      <header className="gradient-warm px-5 pt-6 pb-8 flex-shrink-0">
         <div className="flex items-center gap-3 mb-6">
           <button 
             onClick={() => navigate('/')}
@@ -145,13 +234,13 @@ const BillingPage = () => {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="px-5 py-6">
+      {/* Main Content - Scrollable */}
+      <main className="flex-1 overflow-y-auto px-5 py-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold">Passenger Bills</h2>
-          <Button variant="outline" size="sm" onClick={handleExportCSV}>
-            <Download className="w-4 h-4" />
-            Export
+          <Button variant="outline" size="sm" onClick={handleExportPDF}>
+            <FileText className="w-4 h-4" />
+            Export PDF
           </Button>
         </div>
 
@@ -170,45 +259,15 @@ const BillingPage = () => {
         ) : (
           <div className="space-y-3">
             {passengerBilling.map((bill, index) => (
-              <div key={index} className="card-warm animate-fade-in">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h3 className="font-bold text-lg">{bill.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {bill.rides} ride{bill.rides !== 1 ? 's' : ''} this month
-                    </p>
-                  </div>
-                  <span className="text-2xl font-bold text-success">
-                    SAR {bill.total.toFixed(0)}
-                  </span>
-                </div>
-                
-                {/* Ride Details */}
-                <div className="mb-3 p-3 bg-muted/50 rounded-lg">
-                  <p className="text-sm font-semibold text-muted-foreground mb-2">Ride Breakdown:</p>
-                  <div className="space-y-1 max-h-32 overflow-y-auto">
-                    {bill.rideDetails.map((detail, idx) => (
-                      <div key={idx} className="flex justify-between text-sm">
-                        <span className={detail.attendance === 'absent' ? 'text-destructive line-through' : ''}>
-                          📅 {detail.date} {detail.attendance === 'absent' && '(Absent)'}
-                        </span>
-                        <span className="font-semibold">SAR {detail.fare.toFixed(0)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {bill.phone && (
-                  <Button
-                    variant="outline"
-                    className="w-full border-success text-success hover:bg-success/10"
-                    onClick={() => handleSendWhatsApp(bill.name, bill.phone, bill.rideDetails, bill.total)}
-                  >
-                    <MessageCircle className="w-5 h-5" />
-                    Send Bill via WhatsApp
-                  </Button>
-                )}
-              </div>
+              <BillingCard
+                key={index}
+                name={bill.name}
+                phone={bill.phone}
+                rides={bill.rides}
+                total={bill.total}
+                rideDetails={bill.rideDetails}
+                onSendWhatsApp={() => handleSendWhatsApp(bill.name, bill.phone, bill.rideDetails, bill.total)}
+              />
             ))}
           </div>
         )}

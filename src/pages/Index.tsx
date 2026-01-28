@@ -4,7 +4,8 @@ import { format } from 'date-fns';
 import { BottomNav } from '@/components/BottomNav';
 import { RideCard } from '@/components/RideCard';
 import { StatCard } from '@/components/StatCard';
-import { AddRideSheet } from '@/components/AddRideSheet';
+import { AddActionMenu } from '@/components/AddActionMenu';
+import { AddClientSheet } from '@/components/AddClientSheet';
 import { CompleteRideDialog } from '@/components/CompleteRideDialog';
 import { useRides, Ride } from '@/hooks/useRides';
 import { usePassengers } from '@/hooks/usePassengers';
@@ -22,9 +23,11 @@ const Index = () => {
     getMonthRides, 
     getEarnings 
   } = useRides();
-  const { passengers } = usePassengers();
+  const { passengers, addPassenger } = usePassengers();
   
   const [completingRide, setCompletingRide] = useState<Ride | null>(null);
+  const [addClientOpen, setAddClientOpen] = useState(false);
+  const [isAddingRegular, setIsAddingRegular] = useState(true);
 
   const todayRides = getTodayRides();
   const scheduledToday = todayRides.filter(r => r.status === 'scheduled');
@@ -53,6 +56,16 @@ const Index = () => {
     await updateAttendance(rideId, attendance);
   };
 
+  const handleAddRegular = () => {
+    setIsAddingRegular(true);
+    setAddClientOpen(true);
+  };
+
+  const handleAddRandom = () => {
+    setIsAddingRegular(false);
+    setAddClientOpen(true);
+  };
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning';
@@ -78,25 +91,27 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-3">
-          <StatCard
-            icon={Car}
-            label="Today"
-            value={completedToday.length}
-            subtext={`${scheduledToday.length} pending`}
-          />
-          <StatCard
-            icon={Calendar}
-            label="This Week"
-            value={getWeekRides().filter(r => r.status === 'completed').length}
-            variant="primary"
-          />
+        {/* Quick Stats - 2 columns in first row, 1 full width below */}
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <StatCard
+              icon={Car}
+              label="Today"
+              value={completedToday.length}
+              subtext={`${scheduledToday.length} pending`}
+            />
+            <StatCard
+              icon={Calendar}
+              label="This Week"
+              value={getWeekRides().filter(r => r.status === 'completed').length}
+              variant="primary"
+            />
+          </div>
           <StatCard
             icon={Wallet}
-            label="Earned"
-            value={`${earnings.today}`}
-            subtext="SAR Today"
+            label="Today's Earnings"
+            value={`SAR ${earnings.today}`}
+            subtext="Keep up the great work!"
             variant="success"
           />
         </div>
@@ -132,7 +147,7 @@ const Index = () => {
               No rides today
             </h3>
             <p className="text-muted-foreground">
-              Tap the + button to add a ride
+              Tap the + button to add a client
             </p>
           </div>
         ) : (
@@ -165,8 +180,19 @@ const Index = () => {
         )}
       </main>
 
-      {/* Floating Action Button */}
-      <AddRideSheet passengers={passengers} onAddRide={addRide} />
+      {/* Floating Action Menu */}
+      <AddActionMenu 
+        onAddRegular={handleAddRegular}
+        onAddRandom={handleAddRandom}
+      />
+
+      {/* Add Client Sheet */}
+      <AddClientSheet
+        open={addClientOpen}
+        onOpenChange={setAddClientOpen}
+        isRegular={isAddingRegular}
+        onAddClient={addPassenger}
+      />
 
       {/* Complete Ride Dialog */}
       <CompleteRideDialog
