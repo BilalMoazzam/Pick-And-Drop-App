@@ -56,7 +56,7 @@ const BillingPage = () => {
     return Object.values(billing).sort((a, b) => b.total - a.total);
   }, [monthRides, passengers]);
 
-  const handleSendWhatsApp = (name: string, phone: string, rideDetails: Array<{ date: string; fare: number; attendance: string }>, total: number) => {
+  const generateWhatsAppLink = (name: string, phone: string, rideDetails: Array<{ date: string; fare: number; attendance: string }>, total: number) => {
     const presentRides = rideDetails.filter(r => r.attendance === 'present');
     const absentRides = rideDetails.filter(r => r.attendance === 'absent');
     
@@ -90,37 +90,62 @@ const BillingPage = () => {
     
     // Clean phone number
     const cleanPhone = phone.replace(/\D/g, '');
-    window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
+    return `https://wa.me/${cleanPhone}?text=${message}`;
   };
 
   const handleExportPDF = () => {
     const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
     
-    // Title
-    doc.setFontSize(20);
-    doc.setTextColor(40, 40, 40);
-    doc.text('Monthly Billing Report', 14, 20);
+    // Modern header with warm gradient effect
+    doc.setFillColor(249, 115, 22); // Orange primary
+    doc.rect(0, 0, pageWidth, 55, 'F');
     
-    // Subtitle
-    doc.setFontSize(12);
+    // Accent stripe
+    doc.setFillColor(234, 88, 12);
+    doc.rect(0, 55, pageWidth, 4, 'F');
+    
+    // Company branding
+    doc.setFontSize(10);
+    doc.setTextColor(255, 255, 255);
+    doc.text('PICK & DROP SERVICE', 14, 15);
+    
+    // Report title
+    doc.setFontSize(28);
+    doc.setTextColor(255, 255, 255);
+    doc.text('BILLING REPORT', 14, 38);
+    
+    // Report details on right
+    doc.setFontSize(10);
+    doc.text(`Date: ${format(new Date(), 'dd MMM yyyy')}`, pageWidth - 14, 20, { align: 'right' });
+    doc.text(`Period: ${currentMonth}`, pageWidth - 14, 28, { align: 'right' });
+    doc.text(`Report #${format(new Date(), 'yyyyMM')}`, pageWidth - 14, 36, { align: 'right' });
+    
+    // Summary Stats Section
+    doc.setFillColor(254, 243, 235);
+    doc.roundedRect(14, 68, pageWidth - 28, 30, 3, 3, 'F');
+    
+    doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
-    doc.text(currentMonth, 14, 28);
-    
-    // Summary Stats
-    doc.setFontSize(14);
-    doc.setTextColor(40, 40, 40);
-    doc.text('Summary', 14, 42);
+    doc.text('SUMMARY', 20, 78);
     
     doc.setFontSize(11);
-    doc.text(`Total Rides: ${monthRides.filter(r => r.status === 'completed').length}`, 14, 50);
-    doc.text(`Total Passengers: ${passengerBilling.length}`, 14, 57);
-    doc.text(`Total Earnings: SAR ${earnings.month.toFixed(0)}`, 14, 64);
+    doc.setTextColor(50, 50, 50);
+    const completedRides = monthRides.filter(r => r.status === 'completed').length;
+    doc.text(`Total Rides: ${completedRides}`, 20, 88);
+    doc.text(`Total Clients: ${passengerBilling.length}`, 80, 88);
     
-    // Passenger Billing Table
-    doc.setFontSize(14);
-    doc.text('Passenger Bills', 14, 80);
+    doc.setFontSize(12);
+    doc.setTextColor(249, 115, 22);
+    doc.text(`Total Earnings: SAR ${earnings.month.toFixed(0)}`, 140, 88);
     
-    const tableData = passengerBilling.map(bill => [
+    // Client Bills Table
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text('CLIENT BILLS', 14, 112);
+    
+    const tableData = passengerBilling.map((bill, index) => [
+      (index + 1).toString(),
       bill.name,
       bill.phone || '-',
       bill.rides.toString(),
@@ -128,79 +153,116 @@ const BillingPage = () => {
     ]);
     
     autoTable(doc, {
-      startY: 85,
-      head: [['Client Name', 'Phone', 'Rides', 'Total']],
+      startY: 118,
+      head: [['#', 'Client Name', 'Phone', 'Rides', 'Amount']],
       body: tableData,
+      theme: 'plain',
       headStyles: {
-        fillColor: [59, 130, 246],
-        textColor: 255,
-        fontSize: 11,
+        fillColor: [250, 250, 250],
+        textColor: [100, 100, 100],
+        fontSize: 9,
         fontStyle: 'bold',
+        cellPadding: 6,
       },
       bodyStyles: {
         fontSize: 10,
+        cellPadding: 5,
+        textColor: [50, 50, 50],
       },
       alternateRowStyles: {
-        fillColor: [245, 247, 250],
+        fillColor: [252, 252, 252],
       },
+      columnStyles: {
+        0: { cellWidth: 12, halign: 'center' },
+        1: { cellWidth: 50 },
+        2: { cellWidth: 45 },
+        3: { cellWidth: 20, halign: 'center' },
+        4: { cellWidth: 35, halign: 'right' },
+      },
+      styles: {
+        lineColor: [240, 240, 240],
+        lineWidth: 0.1,
+      },
+      margin: { left: 14, right: 14 },
     });
     
-    // Detailed breakdown for each passenger
-    let yPos = (doc as any).lastAutoTable.finalY + 15;
+    // Detailed breakdown for each passenger on new pages
+    let currentY = (doc as any).lastAutoTable.finalY + 20;
     
     passengerBilling.forEach((bill, index) => {
       // Check if we need a new page
-      if (yPos > 250) {
+      if (currentY > 220) {
         doc.addPage();
-        yPos = 20;
+        currentY = 25;
       }
       
-      doc.setFontSize(12);
-      doc.setTextColor(40, 40, 40);
-      doc.text(`${index + 1}. ${bill.name}`, 14, yPos);
-      yPos += 7;
+      // Client header
+      doc.setFillColor(249, 115, 22);
+      doc.roundedRect(14, currentY, pageWidth - 28, 18, 2, 2, 'F');
       
-      const detailData = bill.rideDetails.map(detail => [
+      doc.setFontSize(11);
+      doc.setTextColor(255, 255, 255);
+      doc.text(`${index + 1}. ${bill.name}`, 20, currentY + 12);
+      doc.text(`Total: SAR ${bill.total.toFixed(0)}`, pageWidth - 20, currentY + 12, { align: 'right' });
+      
+      currentY += 24;
+      
+      const detailData = bill.rideDetails.map((detail, idx) => [
+        (idx + 1).toString(),
         detail.date,
         detail.attendance === 'present' ? 'Present' : 'Absent',
         detail.attendance === 'present' ? `SAR ${detail.fare.toFixed(0)}` : '-',
       ]);
       
       autoTable(doc, {
-        startY: yPos,
-        head: [['Date', 'Status', 'Fare']],
+        startY: currentY,
+        head: [['#', 'Date', 'Status', 'Fare']],
         body: detailData,
+        theme: 'plain',
         headStyles: {
-          fillColor: [100, 116, 139],
-          textColor: 255,
-          fontSize: 9,
+          fillColor: [254, 243, 235],
+          textColor: [100, 100, 100],
+          fontSize: 8,
+          fontStyle: 'bold',
+          cellPadding: 4,
         },
         bodyStyles: {
           fontSize: 9,
+          cellPadding: 3,
+          textColor: [60, 60, 60],
         },
-        margin: { left: 14, right: 14 },
-        tableWidth: 100,
+        alternateRowStyles: {
+          fillColor: [252, 252, 252],
+        },
+        columnStyles: {
+          0: { cellWidth: 12, halign: 'center' },
+          1: { cellWidth: 40 },
+          2: { cellWidth: 35, halign: 'center' },
+          3: { cellWidth: 30, halign: 'right' },
+        },
+        margin: { left: 20, right: 20 },
+        tableWidth: pageWidth - 60,
       });
       
-      yPos = (doc as any).lastAutoTable.finalY + 10;
-      
-      doc.setFontSize(10);
-      doc.setTextColor(34, 197, 94);
-      doc.text(`Total: SAR ${bill.total.toFixed(0)}`, 14, yPos);
-      yPos += 15;
+      currentY = (doc as any).lastAutoTable.finalY + 15;
     });
     
-    // Footer
+    // Footer on all pages
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
+      
+      doc.setFillColor(250, 250, 250);
+      doc.rect(0, 280, pageWidth, 17, 'F');
+      
       doc.setFontSize(8);
       doc.setTextColor(150, 150, 150);
-      doc.text(`Pick & Drop Service - Generated on ${format(new Date(), 'dd MMM yyyy, HH:mm')}`, 14, 290);
-      doc.text(`Page ${i} of ${pageCount}`, 180, 290);
+      doc.text('Pick & Drop Service | Professional Transportation', 14, 288);
+      doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, 288, { align: 'center' });
+      doc.text(`Generated: ${format(new Date(), 'dd MMM yyyy, HH:mm')}`, pageWidth - 14, 288, { align: 'right' });
     }
     
-    doc.save(`billing-${format(new Date(), 'yyyy-MM')}.pdf`);
+    doc.save(`billing-report-${format(new Date(), 'yyyy-MM')}.pdf`);
   };
 
   return (
@@ -270,7 +332,7 @@ const BillingPage = () => {
                 total={bill.total}
                 rideDetails={bill.rideDetails}
                 currentMonth={currentMonth}
-                onSendWhatsApp={() => handleSendWhatsApp(bill.name, bill.phone, bill.rideDetails, bill.total)}
+                whatsappLink={generateWhatsAppLink(bill.name, bill.phone, bill.rideDetails, bill.total)}
               />
             ))}
           </div>

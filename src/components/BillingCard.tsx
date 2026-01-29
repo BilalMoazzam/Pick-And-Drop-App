@@ -18,11 +18,11 @@ interface BillingCardProps {
   rides: number;
   total: number;
   rideDetails: RideDetail[];
-  onSendWhatsApp: () => void;
+  whatsappLink: string;
   currentMonth: string;
 }
 
-export function BillingCard({ name, phone, rides, total, rideDetails, onSendWhatsApp, currentMonth }: BillingCardProps) {
+export function BillingCard({ name, phone, rides, total, rideDetails, whatsappLink, currentMonth }: BillingCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const presentRides = rideDetails.filter(r => r.attendance === 'present');
@@ -270,16 +270,20 @@ export function BillingCard({ name, phone, rides, total, rideDetails, onSendWhat
               PDF
             </Button>
             {phone && (
-              <Button
-                className="flex-1 bg-success hover:bg-success/90 text-success-foreground"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSendWhatsApp();
-                }}
+              <a
+                href={whatsappLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1"
+                onClick={(e) => e.stopPropagation()}
               >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                WhatsApp
-              </Button>
+                <Button
+                  className="w-full bg-success hover:bg-success/90 text-success-foreground"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  WhatsApp
+                </Button>
+              </a>
             )}
           </div>
         </div>
