@@ -34,86 +34,134 @@ export function BillingCard({ name, phone, rides, total, rideDetails, onSendWhat
 
   const handleExportPDF = () => {
     const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
     
-    // Header with gradient effect
-    doc.setFillColor(59, 130, 246);
-    doc.rect(0, 0, 210, 45, 'F');
+    // Modern header with warm gradient effect
+    doc.setFillColor(249, 115, 22); // Orange primary
+    doc.rect(0, 0, pageWidth, 50, 'F');
     
-    // Title
-    doc.setFontSize(24);
+    // Accent stripe
+    doc.setFillColor(234, 88, 12);
+    doc.rect(0, 50, pageWidth, 4, 'F');
+    
+    // Company branding
+    doc.setFontSize(10);
     doc.setTextColor(255, 255, 255);
-    doc.text('Monthly Bill', 14, 25);
+    doc.text('PICK & DROP SERVICE', 14, 15);
     
-    // Month
-    doc.setFontSize(12);
-    doc.text(currentMonth, 14, 35);
+    // Invoice title
+    doc.setFontSize(28);
+    doc.setTextColor(255, 255, 255);
+    doc.text('INVOICE', 14, 35);
     
-    // Client Info Box
-    doc.setFillColor(245, 247, 250);
-    doc.roundedRect(14, 55, 182, 35, 3, 3, 'F');
+    // Invoice details on right
+    doc.setFontSize(10);
+    doc.text(`Date: ${format(new Date(), 'dd MMM yyyy')}`, pageWidth - 14, 20, { align: 'right' });
+    doc.text(`Period: ${currentMonth}`, pageWidth - 14, 28, { align: 'right' });
+    doc.text(`Invoice #${format(new Date(), 'yyyyMM')}`, pageWidth - 14, 36, { align: 'right' });
     
-    doc.setFontSize(16);
-    doc.setTextColor(40, 40, 40);
-    doc.text(name, 20, 70);
+    // Bill To section
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text('BILL TO', 14, 68);
+    
+    doc.setFontSize(18);
+    doc.setTextColor(30, 30, 30);
+    doc.text(name, 14, 78);
     
     doc.setFontSize(11);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Phone: ${phone || 'N/A'}`, 20, 80);
+    doc.setTextColor(80, 80, 80);
+    doc.text(`Phone: ${phone || 'N/A'}`, 14, 86);
+    
+    // Separator line
+    doc.setDrawColor(230, 230, 230);
+    doc.setLineWidth(0.5);
+    doc.line(14, 94, pageWidth - 14, 94);
     
     // Ride Details Table
-    doc.setFontSize(14);
-    doc.setTextColor(40, 40, 40);
-    doc.text('Ride Details', 14, 105);
-    
-    const tableData = rideDetails.map(detail => [
+    const tableData = rideDetails.map((detail, index) => [
+      (index + 1).toString(),
       detail.date,
-      detail.attendance === 'present' ? '✓ Present' : '✗ Absent',
+      detail.attendance === 'present' ? 'Present' : 'Absent',
       detail.attendance === 'present' ? `SAR ${detail.fare.toFixed(0)}` : '-',
     ]);
     
     autoTable(doc, {
-      startY: 110,
-      head: [['Date', 'Status', 'Fare']],
+      startY: 100,
+      head: [['#', 'Date', 'Status', 'Amount']],
       body: tableData,
+      theme: 'plain',
       headStyles: {
-        fillColor: [59, 130, 246],
-        textColor: 255,
-        fontSize: 11,
+        fillColor: [250, 250, 250],
+        textColor: [100, 100, 100],
+        fontSize: 9,
         fontStyle: 'bold',
+        cellPadding: 6,
       },
       bodyStyles: {
         fontSize: 10,
+        cellPadding: 5,
+        textColor: [50, 50, 50],
       },
       alternateRowStyles: {
-        fillColor: [245, 247, 250],
+        fillColor: [252, 252, 252],
       },
       columnStyles: {
-        0: { cellWidth: 60 },
-        1: { cellWidth: 60 },
-        2: { cellWidth: 60 },
+        0: { cellWidth: 15, halign: 'center' },
+        1: { cellWidth: 50 },
+        2: { cellWidth: 50, halign: 'center' },
+        3: { cellWidth: 40, halign: 'right' },
       },
+      styles: {
+        lineColor: [240, 240, 240],
+        lineWidth: 0.1,
+      },
+      margin: { left: 14, right: 14 },
     });
     
-    // Summary Box
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    // Summary section
+    const finalY = (doc as any).lastAutoTable.finalY + 15;
     
-    doc.setFillColor(34, 197, 94);
-    doc.roundedRect(14, finalY, 182, 30, 3, 3, 'F');
+    // Summary box
+    doc.setFillColor(254, 243, 235); // Light orange background
+    doc.roundedRect(pageWidth - 100, finalY, 86, 45, 3, 3, 'F');
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Total Rides:', pageWidth - 94, finalY + 14);
+    doc.text('Subtotal:', pageWidth - 94, finalY + 26);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(50, 50, 50);
+    doc.text(presentRides.length.toString(), pageWidth - 20, finalY + 14, { align: 'right' });
+    doc.text(`SAR ${total.toFixed(0)}`, pageWidth - 20, finalY + 26, { align: 'right' });
+    
+    // Total line
+    doc.setDrawColor(249, 115, 22);
+    doc.setLineWidth(0.5);
+    doc.line(pageWidth - 94, finalY + 32, pageWidth - 20, finalY + 32);
     
     doc.setFontSize(12);
-    doc.setTextColor(255, 255, 255);
-    doc.text(`Total Rides: ${presentRides.length}`, 20, finalY + 12);
+    doc.setTextColor(249, 115, 22);
+    doc.text('TOTAL:', pageWidth - 94, finalY + 42);
+    doc.setFontSize(14);
+    doc.text(`SAR ${total.toFixed(0)}`, pageWidth - 20, finalY + 42, { align: 'right' });
     
-    doc.setFontSize(16);
-    doc.setTextColor(255, 255, 255);
-    doc.text(`Total Amount: SAR ${total.toFixed(0)}`, 20, finalY + 23);
+    // Thank you note
+    doc.setFontSize(11);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Thank you for choosing Pick & Drop Service!', 14, finalY + 25);
     
     // Footer
+    doc.setFillColor(250, 250, 250);
+    doc.rect(0, 280, pageWidth, 17, 'F');
+    
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
-    doc.text(`Generated on ${format(new Date(), 'dd MMM yyyy, HH:mm')} • Pick & Drop Service`, 14, 285);
+    doc.text('Pick & Drop Service | Professional Transportation', 14, 288);
+    doc.text(`Generated: ${format(new Date(), 'dd MMM yyyy, HH:mm')}`, pageWidth - 14, 288, { align: 'right' });
     
-    doc.save(`${name.replace(/\s+/g, '_')}-bill-${format(new Date(), 'yyyy-MM')}.pdf`);
+    doc.save(`${name.replace(/\s+/g, '_')}-invoice-${format(new Date(), 'yyyy-MM')}.pdf`);
   };
 
   return (
