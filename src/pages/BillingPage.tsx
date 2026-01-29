@@ -57,32 +57,35 @@ const BillingPage = () => {
   }, [monthRides, passengers]);
 
   const handleSendWhatsApp = (name: string, phone: string, rideDetails: Array<{ date: string; fare: number; attendance: string }>, total: number) => {
-    // Build detailed ride breakdown
-    const rideBreakdown = rideDetails
-      .filter(r => r.attendance === 'present')
-      .map(r => `   📅 ${r.date} → SAR ${r.fare.toFixed(0)}`)
+    const presentRides = rideDetails.filter(r => r.attendance === 'present');
+    const absentRides = rideDetails.filter(r => r.attendance === 'absent');
+    
+    // Build clean ride breakdown
+    const rideBreakdown = presentRides
+      .map(r => `  * ${r.date} - SAR ${r.fare.toFixed(0)}`)
       .join('\n');
     
-    const absentDays = rideDetails.filter(r => r.attendance === 'absent');
-    const absentSection = absentDays.length > 0 
-      ? `\n\n❌ Absent Days:\n${absentDays.map(r => `   ${r.date}`).join('\n')}`
+    const absentSection = absentRides.length > 0 
+      ? `\n\n*Absent Days:*\n${absentRides.map(r => `  - ${r.date}`).join('\n')}`
       : '';
 
     const message = encodeURIComponent(
-      `━━━━━━━━━━━━━━━━━━━━━\n` +
-      `🚗 *MONTHLY BILL*\n` +
-      `📆 ${currentMonth}\n` +
-      `━━━━━━━━━━━━━━━━━━━━━\n\n` +
-      `👤 *${name}*\n\n` +
-      `📋 *Ride Details:*\n` +
+      `*PICK & DROP SERVICE*\n` +
+      `Monthly Invoice\n` +
+      `------------------------\n\n` +
+      `*Client:* ${name}\n` +
+      `*Period:* ${currentMonth}\n\n` +
+      `*RIDE DETAILS*\n` +
+      `------------------------\n` +
       `${rideBreakdown}` +
       `${absentSection}\n\n` +
-      `━━━━━━━━━━━━━━━━━━━━━\n` +
-      `✅ Total Rides: ${rideDetails.filter(r => r.attendance === 'present').length}\n` +
-      `💰 *Total Amount: SAR ${total.toFixed(0)}*\n` +
-      `━━━━━━━━━━━━━━━━━━━━━\n\n` +
-      `Thank you for choosing us! 🙏\n` +
-      `_Pick & Drop Service_ 🚙`
+      `------------------------\n` +
+      `*Summary*\n` +
+      `Total Rides: ${presentRides.length}\n` +
+      `*TOTAL: SAR ${total.toFixed(0)}*\n` +
+      `------------------------\n\n` +
+      `Thank you for your business!\n` +
+      `Pick & Drop Service`
     );
     
     // Clean phone number
