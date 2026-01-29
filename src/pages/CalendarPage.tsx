@@ -1,13 +1,13 @@
 import { useState, useMemo } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, UserCheck, UserX, Minus, Calendar as CalendarIcon } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, UserCheck, UserX, Minus, Calendar as CalendarIcon, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, getDay } from 'date-fns';
 import { BottomNav } from '@/components/BottomNav';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRides } from '@/hooks/useRides';
 import { usePassengers } from '@/hooks/usePassengers';
 import { cn } from '@/lib/utils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const CalendarPage = () => {
   const navigate = useNavigate();
@@ -15,6 +15,8 @@ const CalendarPage = () => {
   const { passengers } = usePassengers();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showDatePopup, setShowDatePopup] = useState(false);
 
   const regularPassengers = passengers.filter(p => p.is_regular);
 
@@ -36,21 +38,48 @@ const CalendarPage = () => {
     return ride.attendance === 'absent' ? 'absent' : 'present';
   };
 
-  // Calculate totals for selected passenger
+  // Calculate totals for a specific passenger
   const getPassengerStats = (passengerId: string) => {
     let present = 0;
     let absent = 0;
+    let earnings = 0;
     
     days.forEach(day => {
       const status = getRideStatus(passengerId, day);
-      if (status === 'present') present++;
+      if (status === 'present') {
+        present++;
+        // Find the ride fare for this day
+        const ride = rides.find(r => {
+          const rideDate = new Date(r.pickup_time);
+          return r.passenger_id === passengerId && isSameDay(rideDate, day) && r.status === 'completed' && r.attendance === 'present';
+        });
+        if (ride) {
+          earnings += Number(ride.fare) || 0;
+        }
+      }
       if (status === 'absent') absent++;
     });
     
-    return { present, absent };
+    return { present, absent, earnings };
   };
 
-  // Overall stats including total earnings
+  // Get all clients' attendance for a specific date
+  const getDateAttendance = (date: Date) => {
+    return regularPassengers.map(p => {
+      const status = getRideStatus(p.id, date);
+      const ride = rides.find(r => {
+        const rideDate = new Date(r.pickup_time);
+        return r.passenger_id === p.id && isSameDay(rideDate, date) && r.status === 'completed';
+      });
+      return {
+        passenger: p,
+        status,
+        fare: ride ? Number(ride.fare) || 0 : 0
+      };
+    });
+  };
+
+  // Overall stats including total earnings for all clients
   const overallStats = useMemo(() => {
     let totalPresent = 0;
     let totalAbsent = 0;
@@ -60,18 +89,11 @@ const CalendarPage = () => {
       const stats = getPassengerStats(p.id);
       totalPresent += stats.present;
       totalAbsent += stats.absent;
-    });
-
-    // Calculate earnings for the month
-    rides.forEach(ride => {
-      const rideDate = new Date(ride.pickup_time);
-      if (rideDate >= monthStart && rideDate <= monthEnd && ride.status === 'completed' && ride.attendance === 'present') {
-        totalEarnings += Number(ride.fare) || 0;
-      }
+      totalEarnings += stats.earnings;
     });
     
     return { totalPresent, totalAbsent, totalEarnings };
-  }, [regularPassengers, rides, days, monthStart, monthEnd]);
+  }, [regularPassengers, rides, days]);
 
   const goToPreviousMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
   const goToNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
@@ -79,7 +101,22 @@ const CalendarPage = () => {
   const selectedPassenger = regularPassengers.find(p => p.id === selectedClient);
   const selectedStats = selectedClient ? getPassengerStats(selectedClient) : null;
 
+  // Display stats based on selection
+  const displayStats = selectedStats 
+    ? { present: selectedStats.present, absent: selectedStats.absent, earnings: selectedStats.earnings }
+    : { present: overallStats.totalPresent, absent: overallStats.totalAbsent, earnings: overallStats.totalEarnings };
+
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  const handleDateClick = (day: Date) => {
+    if (!selectedClient) {
+      // Show popup with all clients' attendance for this date
+      setSelectedDate(day);
+      setShowDatePopup(true);
+    }
+  };
+
+  const dateAttendance = selectedDate ? getDateAttendance(selectedDate) : [];
 
   return (
     <div className="min-h-screen bg-background safe-bottom flex flex-col">
@@ -129,15 +166,15 @@ const CalendarPage = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Client Selector */}
+            {/* Client Selector - Horizontal Scroll */}
             <div className="bg-card rounded-2xl p-4 shadow-sm">
               <h3 className="text-sm font-semibold text-muted-foreground mb-3">Select Client</h3>
-              <ScrollArea className="h-24">
-                <div className="flex gap-2 pb-2">
+              <div className="overflow-x-auto scrollbar-hide -mx-1 px-1">
+                <div className="flex gap-2 pb-2" style={{ minWidth: 'max-content' }}>
                   <button
                     onClick={() => setSelectedClient(null)}
                     className={cn(
-                      "px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors",
+                      "px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors flex-shrink-0",
                       !selectedClient 
                         ? "bg-primary text-primary-foreground" 
                         : "bg-muted hover:bg-muted/80"
@@ -150,7 +187,7 @@ const CalendarPage = () => {
                       key={p.id}
                       onClick={() => setSelectedClient(p.id)}
                       className={cn(
-                        "px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors",
+                        "px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors flex-shrink-0",
                         selectedClient === p.id 
                           ? "bg-primary text-primary-foreground" 
                           : "bg-muted hover:bg-muted/80"
@@ -160,7 +197,7 @@ const CalendarPage = () => {
                     </button>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
             </div>
 
             {/* Calendar Grid */}
@@ -200,22 +237,25 @@ const CalendarPage = () => {
                   }
 
                   return (
-                    <div
+                    <button
                       key={day.toISOString()}
+                      onClick={() => handleDateClick(day)}
+                      disabled={!!selectedClient}
                       className={cn(
                         "aspect-square rounded-xl flex flex-col items-center justify-center text-sm font-medium transition-colors",
                         isToday(day) && "ring-2 ring-primary ring-offset-2",
                         dayStatus === 'present' && "bg-success/20 text-success",
                         dayStatus === 'absent' && "bg-destructive/20 text-destructive",
                         dayStatus === 'mixed' && "bg-warning/20 text-warning",
-                        dayStatus === 'none' && "bg-muted/50 text-muted-foreground"
+                        dayStatus === 'none' && "bg-muted/50 text-muted-foreground",
+                        !selectedClient && dayStatus !== 'none' && "cursor-pointer hover:opacity-80"
                       )}
                     >
                       <span className="text-xs">{format(day, 'd')}</span>
                       {dayStatus === 'present' && <UserCheck className="w-3 h-3 mt-0.5" />}
                       {dayStatus === 'absent' && <UserX className="w-3 h-3 mt-0.5" />}
                       {dayStatus === 'mixed' && <span className="text-[10px]">Mix</span>}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -225,23 +265,25 @@ const CalendarPage = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-success/10 rounded-2xl p-4 text-center">
                 <p className="text-3xl font-bold text-success">
-                  {selectedStats ? selectedStats.present : overallStats.totalPresent}
+                  {displayStats.present}
                 </p>
                 <p className="text-sm text-muted-foreground">Present Days</p>
               </div>
               <div className="bg-destructive/10 rounded-2xl p-4 text-center">
                 <p className="text-3xl font-bold text-destructive">
-                  {selectedStats ? selectedStats.absent : overallStats.totalAbsent}
+                  {displayStats.absent}
                 </p>
                 <p className="text-sm text-muted-foreground">Absent Days</p>
               </div>
             </div>
 
-            {/* Total Earnings */}
+            {/* Total Earnings - Shows individual or all based on selection */}
             <div className="bg-primary/10 rounded-2xl p-5 text-center">
-              <p className="text-sm text-muted-foreground mb-1">Total Earnings This Month</p>
+              <p className="text-sm text-muted-foreground mb-1">
+                {selectedClient ? `${selectedPassenger?.name}'s Earnings` : 'Total Earnings This Month'}
+              </p>
               <p className="text-4xl font-bold text-primary">
-                SAR {overallStats.totalEarnings.toFixed(0)}
+                SAR {displayStats.earnings.toFixed(0)}
               </p>
             </div>
 
@@ -268,6 +310,11 @@ const CalendarPage = () => {
                   <span>Mixed</span>
                 </div>
               </div>
+              {!selectedClient && (
+                <p className="text-xs text-muted-foreground mt-3">
+                  💡 Tap on any date to see all clients' attendance details
+                </p>
+              )}
             </div>
 
             {/* Client Details (if selected) */}
@@ -289,6 +336,75 @@ const CalendarPage = () => {
       </main>
 
       <BottomNav />
+
+      {/* Date Attendance Popup */}
+      <Dialog open={showDatePopup} onOpenChange={setShowDatePopup}>
+        <DialogContent className="max-w-sm mx-4 rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-center">
+              {selectedDate && format(selectedDate, 'EEEE, MMMM d, yyyy')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+            {dateAttendance.length === 0 ? (
+              <p className="text-center text-muted-foreground py-4">No attendance data for this date</p>
+            ) : (
+              dateAttendance.map(({ passenger, status, fare }) => (
+                <div
+                  key={passenger.id}
+                  className={cn(
+                    "flex items-center justify-between p-3 rounded-xl",
+                    status === 'present' && "bg-success/10",
+                    status === 'absent' && "bg-destructive/10",
+                    status === 'none' && "bg-muted/50"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "w-10 h-10 rounded-full flex items-center justify-center text-white font-bold",
+                      status === 'present' && "bg-success",
+                      status === 'absent' && "bg-destructive",
+                      status === 'none' && "bg-muted-foreground"
+                    )}>
+                      {passenger.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-semibold">{passenger.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {status === 'present' && `Present - SAR ${fare}`}
+                        {status === 'absent' && 'Absent'}
+                        {status === 'none' && 'No ride scheduled'}
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    {status === 'present' && <UserCheck className="w-6 h-6 text-success" />}
+                    {status === 'absent' && <UserX className="w-6 h-6 text-destructive" />}
+                    {status === 'none' && <Minus className="w-6 h-6 text-muted-foreground" />}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          
+          {/* Summary */}
+          {dateAttendance.length > 0 && (
+            <div className="border-t border-border pt-3 mt-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-success font-semibold">
+                  ✓ {dateAttendance.filter(d => d.status === 'present').length} Present
+                </span>
+                <span className="text-destructive font-semibold">
+                  ✗ {dateAttendance.filter(d => d.status === 'absent').length} Absent
+                </span>
+              </div>
+              <p className="text-center mt-2 text-lg font-bold text-primary">
+                Total: SAR {dateAttendance.reduce((sum, d) => sum + d.fare, 0)}
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
