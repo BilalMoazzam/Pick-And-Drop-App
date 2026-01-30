@@ -56,42 +56,6 @@ const BillingPage = () => {
     return Object.values(billing).sort((a, b) => b.total - a.total);
   }, [monthRides, passengers]);
 
-  const generateWhatsAppLink = (name: string, phone: string, rideDetails: Array<{ date: string; fare: number; attendance: string }>, total: number) => {
-    const presentRides = rideDetails.filter(r => r.attendance === 'present');
-    const absentRides = rideDetails.filter(r => r.attendance === 'absent');
-    
-    // Build clean ride breakdown
-    const rideBreakdown = presentRides
-      .map(r => `  * ${r.date} - SAR ${r.fare.toFixed(0)}`)
-      .join('\n');
-    
-    const absentSection = absentRides.length > 0 
-      ? `\n\n*Absent Days:*\n${absentRides.map(r => `  - ${r.date}`).join('\n')}`
-      : '';
-
-    const message = encodeURIComponent(
-      `*PICK & DROP SERVICE*\n` +
-      `Monthly Invoice\n` +
-      `------------------------\n\n` +
-      `*Client:* ${name}\n` +
-      `*Period:* ${currentMonth}\n\n` +
-      `*RIDE DETAILS*\n` +
-      `------------------------\n` +
-      `${rideBreakdown}` +
-      `${absentSection}\n\n` +
-      `------------------------\n` +
-      `*Summary*\n` +
-      `Total Rides: ${presentRides.length}\n` +
-      `*TOTAL: SAR ${total.toFixed(0)}*\n` +
-      `------------------------\n\n` +
-      `Thank you for your business!\n` +
-      `Pick & Drop Service`
-    );
-    
-    // Clean phone number
-    const cleanPhone = phone.replace(/\D/g, '');
-    return `https://wa.me/${cleanPhone}?text=${message}`;
-  };
 
   const handleExportPDF = () => {
     const doc = new jsPDF();
@@ -332,7 +296,6 @@ const BillingPage = () => {
                 total={bill.total}
                 rideDetails={bill.rideDetails}
                 currentMonth={currentMonth}
-                whatsappLink={generateWhatsAppLink(bill.name, bill.phone, bill.rideDetails, bill.total)}
               />
             ))}
           </div>

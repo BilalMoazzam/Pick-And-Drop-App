@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, MessageCircle, FileText, User } from 'lucide-react';
+import { ChevronDown, MessageCircle, FileText, User, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
@@ -18,11 +18,10 @@ interface BillingCardProps {
   rides: number;
   total: number;
   rideDetails: RideDetail[];
-  whatsappLink: string;
   currentMonth: string;
 }
 
-export function BillingCard({ name, phone, rides, total, rideDetails, whatsappLink, currentMonth }: BillingCardProps) {
+export function BillingCard({ name, phone, rides, total, rideDetails, currentMonth }: BillingCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const presentRides = rideDetails.filter(r => r.attendance === 'present');
@@ -32,7 +31,7 @@ export function BillingCard({ name, phone, rides, total, rideDetails, whatsappLi
   const previewRides = presentRides.slice(0, 3);
   const hasMoreRides = presentRides.length > 3;
 
-  const handleExportPDF = () => {
+  const generatePDFBlob = (): Blob => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     
@@ -123,7 +122,7 @@ export function BillingCard({ name, phone, rides, total, rideDetails, whatsappLi
     const finalY = (doc as any).lastAutoTable.finalY + 15;
     
     // Summary box
-    doc.setFillColor(254, 243, 235); // Light orange background
+    doc.setFillColor(254, 243, 235);
     doc.roundedRect(pageWidth - 100, finalY, 86, 45, 3, 3, 'F');
     
     doc.setFontSize(10);
@@ -161,7 +160,94 @@ export function BillingCard({ name, phone, rides, total, rideDetails, whatsappLi
     doc.text('Pick & Drop Service | Professional Transportation', 14, 288);
     doc.text(`Generated: ${format(new Date(), 'dd MMM yyyy, HH:mm')}`, pageWidth - 14, 288, { align: 'right' });
     
-    doc.save(`${name.replace(/\s+/g, '_')}-invoice-${format(new Date(), 'yyyy-MM')}.pdf`);
+    return doc.output('blob');
+  };
+
+  const handleExportPDF = () => {
+    const blob = generatePDFBlob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${name.replace(/\s+/g, '_')}-invoice-${format(new Date(), 'yyyy-MM')}.pdf`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const generateBillText = () => {
+    const rideBreakdown = presentRides
+      .map(r => `   ${r.date} - SAR ${r.fare.toFixed(0)}`)
+      .join('\n');
+    
+    const absentSection = absentRides.length > 0 
+      ? `\n\nAbsent Days:\n${absentRides.map(r => `   ${r.date}`).join('\n')}`
+      : '';
+
+    return `PICK & DROP SERVICE
+Monthly Invoice
+------------------------
+
+Client: ${name}
+Period: ${currentMonth}
+
+RIDE DETAILS
+------------------------
+${rideBreakdown}${absentSection}
+
+------------------------
+Summary
+Total Rides: ${presentRides.length}
+TOTAL: SAR ${total.toFixed(0)}
+------------------------
+
+Thank you for your business!
+Pick & Drop Service`;
+  };
+
+  const handleShareWhatsApp = async (e: React.MouseEvent, sharePDF: boolean = false) => {
+    e.stopPropagation();
+    
+    // Check if Web Share API is available (works on mobile)
+    if (navigator.share) {
+      try {
+        if (sharePDF) {
+          // Share PDF file via native share
+          const blob = generatePDFBlob();
+          const file = new File([blob], `${name.replace(/\s+/g, '_')}-invoice-${format(new Date(), 'yyyy-MM')}.pdf`, {
+            type: 'application/pdf'
+          });
+          
+          // Check if file sharing is supported
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: `Invoice - ${name}`,
+              text: `Monthly invoice for ${name} - ${currentMonth}`
+            });
+          } else {
+            // Fallback: download PDF and show message
+            handleExportPDF();
+            alert('PDF downloaded! You can share it from your downloads folder.');
+          }
+        } else {
+          // Share text via native share
+          await navigator.share({
+            title: `Invoice - ${name}`,
+            text: generateBillText()
+          });
+        }
+      } catch (error) {
+        // User cancelled or error - try fallback
+        if ((error as Error).name !== 'AbortError') {
+          // Fallback to WhatsApp URL
+          const cleanPhone = phone.replace(/\D/g, '');
+          window.location.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(generateBillText())}`;
+        }
+      }
+    } else {
+      // Desktop fallback - use WhatsApp URL
+      const cleanPhone = phone.replace(/\D/g, '');
+      window.location.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(generateBillText())}`;
+    }
   };
 
   return (
@@ -270,20 +356,22 @@ export function BillingCard({ name, phone, rides, total, rideDetails, whatsappLi
               PDF
             </Button>
             {phone && (
-              <a
-                href={whatsappLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1"
-                onClick={(e) => e.stopPropagation()}
+              <Button
+                className="flex-1 bg-success hover:bg-success/90 text-success-foreground"
+                onClick={(e) => handleShareWhatsApp(e, false)}
               >
-                <Button
-                  className="w-full bg-success hover:bg-success/90 text-success-foreground"
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  WhatsApp
-                </Button>
-              </a>
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Text
+              </Button>
+            )}
+            {phone && (
+              <Button
+                className="flex-1 bg-primary hover:bg-primary/90"
+                onClick={(e) => handleShareWhatsApp(e, true)}
+              >
+                <Share2 className="w-4 h-4 mr-2" />
+                PDF
+              </Button>
             )}
           </div>
         </div>
