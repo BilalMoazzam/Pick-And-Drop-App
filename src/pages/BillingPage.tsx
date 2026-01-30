@@ -6,6 +6,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { Button } from '@/components/ui/button';
 import { StatCard } from '@/components/StatCard';
 import { BillingCard } from '@/components/BillingCard';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { useRides } from '@/hooks/useRides';
 import { usePassengers } from '@/hooks/usePassengers';
 import jsPDF from 'jspdf';
@@ -233,17 +234,20 @@ const BillingPage = () => {
     <div className="min-h-screen bg-background safe-bottom flex flex-col">
       {/* Header */}
       <header className="gradient-warm px-5 pt-6 pb-8 flex-shrink-0">
-        <div className="flex items-center gap-3 mb-6">
-          <button 
-            onClick={() => navigate('/')}
-            className="w-10 h-10 rounded-xl bg-card flex items-center justify-center"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold">Billing</h1>
-            <p className="text-muted-foreground">{currentMonth}</p>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => navigate('/')}
+              className="w-10 h-10 rounded-xl bg-card flex items-center justify-center"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold">Billing</h1>
+              <p className="text-muted-foreground">{currentMonth}</p>
+            </div>
           </div>
+          <ThemeToggle />
         </div>
 
         {/* Monthly Stats */}

@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { ArrowLeft, Filter, Calendar } from 'lucide-react';
+import { ArrowLeft, Calendar } from 'lucide-react';
 import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { BottomNav } from '@/components/BottomNav';
 import { RideCard } from '@/components/RideCard';
-import { Button } from '@/components/ui/button';
 import { CompleteRideDialog } from '@/components/CompleteRideDialog';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { useRides, Ride } from '@/hooks/useRides';
 import { cn } from '@/lib/utils';
 
@@ -58,14 +58,17 @@ const RidesPage = () => {
     <div className="min-h-screen bg-background safe-bottom">
       {/* Header */}
       <header className="bg-card border-b border-border px-5 py-4 sticky top-0 z-40">
-        <div className="flex items-center gap-3 mb-4">
-          <button 
-            onClick={() => navigate('/')}
-            className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="text-2xl font-bold">All Rides</h1>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => navigate('/')}
+              className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-2xl font-bold">All Rides</h1>
+          </div>
+          <ThemeToggle />
         </div>
 
         {/* Filter Tabs */}
