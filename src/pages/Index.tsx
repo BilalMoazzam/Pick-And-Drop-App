@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Car, TrendingUp, Calendar, Wallet, Sun } from 'lucide-react';
+import { Car, TrendingUp, Calendar, Wallet } from 'lucide-react';
 import { format } from 'date-fns';
 import { BottomNav } from '@/components/BottomNav';
 import { RideCard } from '@/components/RideCard';
@@ -7,6 +7,7 @@ import { StatCard } from '@/components/StatCard';
 import { AddActionMenu } from '@/components/AddActionMenu';
 import { AddRideSheet } from '@/components/AddRideSheet';
 import { CompleteRideDialog } from '@/components/CompleteRideDialog';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { useRides, Ride } from '@/hooks/useRides';
 import { usePassengers } from '@/hooks/usePassengers';
 
@@ -70,18 +71,21 @@ const Index = () => {
     <div className="min-h-screen bg-background safe-bottom">
       {/* Header */}
       <header className="gradient-warm px-5 pt-6 pb-8">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 rounded-full gradient-primary flex items-center justify-center shadow-lg">
-            <Sun className="w-6 h-6 text-primary-foreground" />
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full gradient-primary flex items-center justify-center shadow-lg">
+              <Car className="w-6 h-6 text-primary-foreground" />
+            </div>
+            <div>
+              <p className="text-muted-foreground font-medium">
+                {getGreeting()}
+              </p>
+              <h1 className="text-2xl font-bold text-foreground">
+                {format(new Date(), 'EEEE, MMM d')}
+              </h1>
+            </div>
           </div>
-          <div>
-            <p className="text-muted-foreground font-medium">
-              {getGreeting()}
-            </p>
-            <h1 className="text-2xl font-bold text-foreground">
-              {format(new Date(), 'EEEE, MMM d')}
-            </h1>
-          </div>
+          <ThemeToggle />
         </div>
 
         {/* Quick Stats - 2 columns in first row, 1 full width below */}

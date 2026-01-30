@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -233,10 +234,13 @@ const PassengersPage = () => {
             </button>
             <h1 className="text-2xl font-bold">Clients</h1>
           </div>
-          <Button size="sm" onClick={() => handleOpenSheet()}>
-            <Plus className="w-4 h-4" />
-            Add
-          </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button size="sm" onClick={() => handleOpenSheet()}>
+              <Plus className="w-4 h-4" />
+              Add
+            </Button>
+          </div>
         </div>
 
         {/* Search */}

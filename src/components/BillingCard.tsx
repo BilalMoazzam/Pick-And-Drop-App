@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, MessageCircle, FileText, User, Share2 } from 'lucide-react';
+import { ChevronDown, MessageCircle, FileText, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
@@ -203,50 +203,41 @@ Thank you for your business!
 Pick & Drop Service`;
   };
 
-  const handleShareWhatsApp = async (e: React.MouseEvent, sharePDF: boolean = false) => {
+  const handleShareWhatsApp = async (e: React.MouseEvent) => {
     e.stopPropagation();
     
     // Check if Web Share API is available (works on mobile)
     if (navigator.share) {
       try {
-        if (sharePDF) {
-          // Share PDF file via native share
-          const blob = generatePDFBlob();
-          const file = new File([blob], `${name.replace(/\s+/g, '_')}-invoice-${format(new Date(), 'yyyy-MM')}.pdf`, {
-            type: 'application/pdf'
-          });
-          
-          // Check if file sharing is supported
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-              files: [file],
-              title: `Invoice - ${name}`,
-              text: `Monthly invoice for ${name} - ${currentMonth}`
-            });
-          } else {
-            // Fallback: download PDF and show message
-            handleExportPDF();
-            alert('PDF downloaded! You can share it from your downloads folder.');
-          }
-        } else {
-          // Share text via native share
+        // Share PDF file via native share
+        const blob = generatePDFBlob();
+        const file = new File([blob], `${name.replace(/\s+/g, '_')}-invoice-${format(new Date(), 'yyyy-MM')}.pdf`, {
+          type: 'application/pdf'
+        });
+        
+        // Check if file sharing is supported
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
+            files: [file],
             title: `Invoice - ${name}`,
-            text: generateBillText()
+            text: `Monthly invoice for ${name} - ${currentMonth}`
           });
+        } else {
+          // Fallback: download PDF and show message
+          handleExportPDF();
+          alert('PDF downloaded! You can share it from your downloads folder.');
         }
       } catch (error) {
-        // User cancelled or error - try fallback
+        // User cancelled or error
         if ((error as Error).name !== 'AbortError') {
-          // Fallback to WhatsApp URL
-          const cleanPhone = phone.replace(/\D/g, '');
-          window.location.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(generateBillText())}`;
+          // Fallback - just download
+          handleExportPDF();
         }
       }
     } else {
-      // Desktop fallback - use WhatsApp URL
-      const cleanPhone = phone.replace(/\D/g, '');
-      window.location.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(generateBillText())}`;
+      // Desktop fallback - just download PDF
+      handleExportPDF();
+      alert('PDF downloaded! You can share it manually via WhatsApp.');
     }
   };
 
@@ -357,20 +348,11 @@ Pick & Drop Service`;
             </Button>
             {phone && (
               <Button
-                className="flex-1 bg-success hover:bg-success/90 text-success-foreground"
-                onClick={(e) => handleShareWhatsApp(e, false)}
+                className="flex-1 bg-[#25D366] hover:bg-[#25D366]/90 text-white"
+                onClick={handleShareWhatsApp}
               >
                 <MessageCircle className="w-4 h-4 mr-2" />
-                Text
-              </Button>
-            )}
-            {phone && (
-              <Button
-                className="flex-1 bg-primary hover:bg-primary/90"
-                onClick={(e) => handleShareWhatsApp(e, true)}
-              >
-                <Share2 className="w-4 h-4 mr-2" />
-                PDF
+                WhatsApp
               </Button>
             )}
           </div>
