@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { ArrowLeft, Plus, User, Phone, MapPin, Building, Search, Trash2, Edit, Users, UserPlus } from 'lucide-react';
+import { ArrowLeft, Plus, User, Phone, MapPin, Building, Search, Users, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BottomNav } from '@/components/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ClientCard } from '@/components/ClientCard';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -148,73 +149,18 @@ const PassengersPage = () => {
     return (
       <div className="space-y-3">
         {passengerList.map((passenger) => (
-          <div key={passenger.id} className="card-warm animate-fade-in">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3">
-                <div className={cn(
-                  "w-12 h-12 rounded-full flex items-center justify-center shrink-0",
-                  passenger.is_regular ? "bg-primary/10" : "bg-warning/10"
-                )}>
-                  {passenger.is_regular ? (
-                    <Users className="w-6 h-6 text-primary" />
-                  ) : (
-                    <UserPlus className="w-6 h-6 text-warning" />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-lg text-foreground truncate">
-                      {passenger.name}
-                    </h3>
-                    <span className={cn(
-                      "text-xs px-2 py-0.5 rounded-full font-semibold",
-                      passenger.is_regular ? "bg-primary/15 text-primary" : "bg-warning/15 text-warning"
-                    )}>
-                      {passenger.is_regular ? 'Regular' : 'Random'}
-                    </span>
-                  </div>
-                  <p className="text-muted-foreground flex items-center gap-1">
-                    <Phone className="w-3 h-3" />
-                    {passenger.phone}
-                  </p>
-                  {passenger.profession && (
-                    <p className="text-sm text-muted-foreground flex items-center gap-1">
-                      <Building className="w-3 h-3" />
-                      {passenger.profession}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10"
-                  onClick={() => handleOpenSheet(passenger)}
-                >
-                  <Edit className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 text-destructive hover:text-destructive"
-                  onClick={() => setDeletingPassenger(passenger)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-            <div className="mt-3 pt-3 border-t border-border">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                <MapPin className="w-3 h-3 text-success" />
-                <span className="truncate">{passenger.pickup_location}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="w-3 h-3 text-destructive" />
-                <span className="truncate">{passenger.drop_location}</span>
-              </div>
-            </div>
-          </div>
+          <ClientCard
+            key={passenger.id}
+            id={passenger.id}
+            name={passenger.name}
+            phone={passenger.phone}
+            profession={passenger.profession}
+            pickup_location={passenger.pickup_location}
+            drop_location={passenger.drop_location}
+            is_regular={passenger.is_regular}
+            onEdit={() => handleOpenSheet(passenger)}
+            onDelete={() => setDeletingPassenger(passenger)}
+          />
         ))}
       </div>
     );

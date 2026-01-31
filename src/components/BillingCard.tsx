@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { ChevronDown, MessageCircle, FileText, User } from 'lucide-react';
+import { ChevronDown, FileText, User, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 interface RideDetail {
   date: string;
@@ -163,7 +164,8 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
     return doc.output('blob');
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     const blob = generatePDFBlob();
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -171,73 +173,44 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
     link.download = `${name.replace(/\s+/g, '_')}-invoice-${format(new Date(), 'yyyy-MM')}.pdf`;
     link.click();
     URL.revokeObjectURL(url);
-  };
-
-  const generateBillText = () => {
-    const rideBreakdown = presentRides
-      .map(r => `   ${r.date} - SAR ${r.fare.toFixed(0)}`)
-      .join('\n');
-    
-    const absentSection = absentRides.length > 0 
-      ? `\n\nAbsent Days:\n${absentRides.map(r => `   ${r.date}`).join('\n')}`
-      : '';
-
-    return `PICK & DROP SERVICE
-Monthly Invoice
-------------------------
-
-Client: ${name}
-Period: ${currentMonth}
-
-RIDE DETAILS
-------------------------
-${rideBreakdown}${absentSection}
-
-------------------------
-Summary
-Total Rides: ${presentRides.length}
-TOTAL: SAR ${total.toFixed(0)}
-------------------------
-
-Thank you for your business!
-Pick & Drop Service`;
+    toast.success('PDF downloaded!');
   };
 
   const handleShareWhatsApp = async (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    // Check if Web Share API is available (works on mobile)
-    if (navigator.share) {
-      try {
-        // Share PDF file via native share
-        const blob = generatePDFBlob();
-        const file = new File([blob], `${name.replace(/\s+/g, '_')}-invoice-${format(new Date(), 'yyyy-MM')}.pdf`, {
-          type: 'application/pdf'
+    try {
+      const blob = generatePDFBlob();
+      const fileName = `${name.replace(/\s+/g, '_')}-invoice-${format(new Date(), 'yyyy-MM')}.pdf`;
+      const file = new File([blob], fileName, { type: 'application/pdf' });
+      
+      // Check if Web Share API with files is supported
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `Invoice - ${name}`,
+          text: `Monthly invoice for ${name} - ${currentMonth}`,
         });
-        
-        // Check if file sharing is supported
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            files: [file],
-            title: `Invoice - ${name}`,
-            text: `Monthly invoice for ${name} - ${currentMonth}`
-          });
-        } else {
-          // Fallback: download PDF and show message
-          handleExportPDF();
-          alert('PDF downloaded! You can share it from your downloads folder.');
-        }
-      } catch (error) {
-        // User cancelled or error
-        if ((error as Error).name !== 'AbortError') {
-          // Fallback - just download
-          handleExportPDF();
-        }
+        toast.success('Shared successfully!');
+      } else if (navigator.share) {
+        // Fallback: share without file (text only link)
+        await navigator.share({
+          title: `Invoice - ${name}`,
+          text: `Monthly invoice for ${name}\nPeriod: ${currentMonth}\nTotal: SAR ${total.toFixed(0)}\n\nPlease download the PDF from the app.`,
+        });
+      } else {
+        // Desktop fallback: download PDF
+        handleExportPDF();
+        toast.info('PDF downloaded! Share it manually via WhatsApp.');
       }
-    } else {
-      // Desktop fallback - just download PDF
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') {
+        // User cancelled sharing
+        return;
+      }
+      console.error('Share failed:', error);
+      // Fallback to download
       handleExportPDF();
-      alert('PDF downloaded! You can share it manually via WhatsApp.');
     }
   };
 
@@ -253,7 +226,7 @@ Pick & Drop Service`;
             <User className="w-6 h-6 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-lg truncate">{name}</h3>
+            <h3 className="font-bold text-lg text-foreground truncate">{name}</h3>
             <p className="text-sm text-muted-foreground">
               {rides} ride{rides !== 1 ? 's' : ''} this month
             </p>
@@ -266,20 +239,20 @@ Pick & Drop Service`;
               "w-8 h-8 rounded-full flex items-center justify-center bg-muted transition-transform duration-300",
               isExpanded && "rotate-180"
             )}>
-              <ChevronDown className="w-5 h-5" />
+              <ChevronDown className="w-5 h-5 text-foreground" />
             </div>
           </div>
         </div>
 
         {/* Preview - Only when collapsed */}
         {!isExpanded && previewRides.length > 0 && (
-          <div className="mt-3 p-3 bg-muted/50 rounded-xl">
+          <div className="mt-3 p-3 bg-muted rounded-xl">
             <p className="text-xs font-semibold text-muted-foreground mb-2">Recent Rides:</p>
             <div className="space-y-1">
               {previewRides.map((detail, idx) => (
                 <div key={idx} className="flex justify-between text-sm">
                   <span className="text-muted-foreground">📅 {detail.date}</span>
-                  <span className="font-semibold">SAR {detail.fare.toFixed(0)}</span>
+                  <span className="font-semibold text-foreground">SAR {detail.fare.toFixed(0)}</span>
                 </div>
               ))}
               {hasMoreRides && (
@@ -299,7 +272,7 @@ Pick & Drop Service`;
       )}>
         <div className="px-4 pb-4 space-y-3">
           {/* All Rides */}
-          <div className="p-3 bg-muted/50 rounded-xl max-h-48 overflow-y-auto">
+          <div className="p-3 bg-muted rounded-xl max-h-48 overflow-y-auto">
             <p className="text-xs font-semibold text-muted-foreground mb-2">All Rides:</p>
             <div className="space-y-1">
               {presentRides.map((detail, idx) => (
@@ -337,22 +310,19 @@ Pick & Drop Service`;
           <div className="flex gap-2">
             <Button
               variant="outline"
-              className="flex-1"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleExportPDF();
-              }}
+              className="flex-1 h-12"
+              onClick={handleExportPDF}
             >
-              <FileText className="w-4 h-4 mr-2" />
+              <FileText className="w-5 h-5 mr-2" />
               PDF
             </Button>
             {phone && (
               <Button
-                className="flex-1 bg-[#25D366] hover:bg-[#25D366]/90 text-white"
+                className="flex-1 h-12 bg-[#25D366] hover:bg-[#25D366]/90 text-white"
                 onClick={handleShareWhatsApp}
               >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                WhatsApp
+                <Share2 className="w-5 h-5 mr-2" />
+                Share
               </Button>
             )}
           </div>
