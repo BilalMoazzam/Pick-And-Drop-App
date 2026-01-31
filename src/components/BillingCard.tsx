@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, FileText, User, Share2 } from 'lucide-react';
+import { ChevronDown, FileText, User, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
@@ -183,26 +183,28 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
       const blob = generatePDFBlob();
       const fileName = `${name.replace(/\s+/g, '_')}-invoice-${format(new Date(), 'yyyy-MM')}.pdf`;
       const file = new File([blob], fileName, { type: 'application/pdf' });
-      
-      // Check if Web Share API with files is supported
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+
+      const hasShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+      const canShareFiles =
+        hasShare &&
+        // Some browsers support share(files) but don't implement canShare; prefer trying in that case.
+        (!('canShare' in navigator) ||
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (navigator as any).canShare?.({ files: [file] }));
+
+      if (canShareFiles) {
+        // Share the PDF only (no bill text), user can pick WhatsApp from the share sheet.
         await navigator.share({
           files: [file],
           title: `Invoice - ${name}`,
-          text: `Monthly invoice for ${name} - ${currentMonth}`,
         });
-        toast.success('Shared successfully!');
-      } else if (navigator.share) {
-        // Fallback: share without file (text only link)
-        await navigator.share({
-          title: `Invoice - ${name}`,
-          text: `Monthly invoice for ${name}\nPeriod: ${currentMonth}\nTotal: SAR ${total.toFixed(0)}\n\nPlease download the PDF from the app.`,
-        });
-      } else {
-        // Desktop fallback: download PDF
-        handleExportPDF();
-        toast.info('PDF downloaded! Share it manually via WhatsApp.');
+        toast.success('Share sheet opened');
+        return;
       }
+
+      // If file sharing isn't supported on this device/browser, download instead.
+      handleExportPDF();
+      toast.info('Your device cannot share PDFs directly. PDF downloaded instead.');
     } catch (error) {
       if ((error as Error).name === 'AbortError') {
         // User cancelled sharing
@@ -316,15 +318,13 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
               <FileText className="w-5 h-5 mr-2" />
               PDF
             </Button>
-            {phone && (
-              <Button
-                className="flex-1 h-12 bg-[#25D366] hover:bg-[#25D366]/90 text-white"
-                onClick={handleShareWhatsApp}
-              >
-                <Share2 className="w-5 h-5 mr-2" />
-                Share
-              </Button>
-            )}
+            <Button
+              className="flex-1 h-12 bg-success text-success-foreground hover:bg-success/90"
+              onClick={handleShareWhatsApp}
+            >
+              <MessageCircle className="w-5 h-5 mr-2" />
+              WhatsApp
+            </Button>
           </div>
         </div>
       </div>

@@ -77,7 +77,7 @@ const Index = () => {
               <Car className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <p className="text-muted-foreground font-medium">
+              <p className="text-foreground/80 font-semibold">
                 {getGreeting()}
               </p>
               <h1 className="text-2xl font-bold text-foreground">
