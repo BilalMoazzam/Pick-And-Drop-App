@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { ArrowLeft, Receipt, TrendingUp, FileText } from 'lucide-react';
+import { ArrowLeft, Receipt, TrendingUp, FileText, CalendarDays } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { BottomNav } from '@/components/BottomNav';
@@ -242,9 +242,12 @@ const BillingPage = () => {
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <div>
-              <h1 className="text-2xl font-bold">Billing</h1>
-              <p className="text-muted-foreground">{currentMonth}</p>
+            <div className="flex items-center gap-3">
+              <CalendarDays className="w-6 h-6 text-primary" />
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Billing</h1>
+                <p className="text-muted-foreground">{currentMonth}</p>
+              </div>
             </div>
           </div>
           <ThemeToggle />
