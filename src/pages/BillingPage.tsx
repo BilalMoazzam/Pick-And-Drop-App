@@ -246,7 +246,7 @@ const BillingPage = () => {
               <CalendarDays className="w-6 h-6 text-primary" />
               <div>
                 <h1 className="text-2xl font-bold text-foreground">Billing</h1>
-                <p className="text-muted-foreground">{currentMonth}</p>
+                <p className="text-foreground/80 font-semibold">{currentMonth}</p>
               </div>
             </div>
           </div>

@@ -8,6 +8,7 @@
 
 @layer base {
   :root {
+    color-scheme: light;
     /* Warm, friendly color palette */
     --background: 40 33% 98%;
     --foreground: 25 30% 15%;
@@ -74,6 +75,7 @@
   }
 
   .dark {
+    color-scheme: dark;
     /* Dark mode - ensure high contrast text */
     --background: 25 20% 8%;
     --foreground: 40 20% 98%;
@@ -120,6 +122,16 @@
     --sidebar-accent-foreground: 40 20% 98%;
     --sidebar-border: 25 15% 25%;
     --sidebar-ring: 28 90% 55%;
+
+    /* Gradients (dark-mode versions) */
+    --gradient-primary: linear-gradient(135deg, hsl(28 90% 55%) 0%, hsl(35 90% 58%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(152 55% 50%) 0%, hsl(168 50% 48%) 100%);
+    --gradient-warm: linear-gradient(180deg, hsl(25 18% 14%) 0%, hsl(25 20% 8%) 100%);
+
+    /* Shadows (slightly deeper for dark surfaces) */
+    --shadow-soft: 0 10px 30px -12px hsla(0, 0%, 0%, 0.65);
+    --shadow-card: 0 10px 24px -14px hsla(0, 0%, 0%, 0.6);
+    --shadow-button: 0 10px 24px -12px hsla(28, 90%, 40%, 0.35);
   }
 }
 

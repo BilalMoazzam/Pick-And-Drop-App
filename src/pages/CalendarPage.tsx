@@ -133,7 +133,7 @@ const CalendarPage = () => {
             </button>
             <div>
               <h1 className="text-2xl font-bold">Calendar</h1>
-              <p className="text-muted-foreground">Monthly Attendance</p>
+              <p className="text-foreground/80 font-semibold">Monthly Attendance</p>
             </div>
           </div>
           <ThemeToggle />
