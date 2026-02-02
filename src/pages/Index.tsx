@@ -8,6 +8,7 @@ import { AddActionMenu } from '@/components/AddActionMenu';
 import { AddRideSheet } from '@/components/AddRideSheet';
 import { CompleteRideDialog } from '@/components/CompleteRideDialog';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { AnimatedGreeting } from '@/components/AnimatedGreeting';
 import { useRides, Ride } from '@/hooks/useRides';
 import { usePassengers } from '@/hooks/usePassengers';
 
@@ -60,30 +61,16 @@ const Index = () => {
     setAddRideOpen(true);
   };
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
-  };
-
   return (
     <div className="min-h-screen bg-background safe-bottom">
       {/* Header */}
       <header className="gradient-warm px-5 pt-6 pb-8">
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full gradient-primary flex items-center justify-center shadow-lg">
-              <Car className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <div>
-              <p className="text-foreground/80 font-semibold">
-                {getGreeting()}
-              </p>
-              <h1 className="text-2xl font-bold text-foreground">
-                {format(new Date(), 'EEEE, MMM d')}
-              </h1>
-            </div>
+          <div className="flex items-center gap-2">
+            <AnimatedGreeting />
+            <h1 className="text-xl font-bold text-foreground">
+              {format(new Date(), 'EEEE, MMM d')}
+            </h1>
           </div>
           <ThemeToggle />
         </div>
