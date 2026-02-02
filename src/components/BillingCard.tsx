@@ -1,11 +1,12 @@
-import { useState } from 'react';
-import { ChevronDown, FileText, User, MessageCircle } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ChevronDown, FileText, Loader2, MessageCircle, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface RideDetail {
   date: string;
@@ -24,6 +25,8 @@ interface BillingCardProps {
 
 export function BillingCard({ name, phone, rides, total, rideDetails, currentMonth }: BillingCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareHelpOpen, setShareHelpOpen] = useState(false);
 
   const presentRides = rideDetails.filter(r => r.attendance === 'present');
   const absentRides = rideDetails.filter(r => r.attendance === 'absent');
@@ -171,50 +174,64 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
     const link = document.createElement('a');
     link.href = url;
     link.download = `${name.replace(/\s+/g, '_')}-invoice-${format(new Date(), 'yyyy-MM')}.pdf`;
+    link.rel = 'noopener';
+    document.body.appendChild(link);
     link.click();
-    URL.revokeObjectURL(url);
-    toast.success('PDF downloaded!');
+    link.remove();
+    // Some mobile browsers may cancel the download if we revoke immediately.
+    window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+    toast.success('PDF downloaded');
   };
 
   const handleShareWhatsApp = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+    if (isSharing) return;
+
+    const toastId = toast.loading('Preparing PDF…');
+    setIsSharing(true);
     try {
       const blob = generatePDFBlob();
       const fileName = `${name.replace(/\s+/g, '_')}-invoice-${format(new Date(), 'yyyy-MM')}.pdf`;
       const file = new File([blob], fileName, { type: 'application/pdf' });
 
-      // Check if Web Share API is available
+      // Preferred: native share sheet (user can pick WhatsApp)
       if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+        toast.loading('Opening share sheet…', { id: toastId });
         try {
-          // Try to share with file directly - don't check canShare as it's unreliable
           await navigator.share({
             files: [file],
             title: `Invoice - ${name}`,
           });
-          toast.success('Shared successfully!');
+          toast.success('Share sheet opened', { id: toastId });
           return;
         } catch (shareError) {
-          // If file sharing fails, try sharing without file (just text with download)
           if ((shareError as Error).name === 'AbortError') {
-            // User cancelled - don't show any message
+            toast.dismiss(toastId);
             return;
           }
-          // File sharing not supported, fall through to download
-          console.log('File sharing not supported, downloading instead');
+          console.warn('Share failed, showing manual options:', shareError);
         }
       }
 
-      // Fallback: Download the PDF
-      handleExportPDF();
-      toast.info('PDF downloaded - share it manually via WhatsApp');
+      // If sharing isn't supported/failed, show manual options.
+      toast.dismiss(toastId);
+      setShareHelpOpen(true);
     } catch (error) {
       console.error('Share failed:', error);
-      handleExportPDF();
+      toast.dismiss(toastId);
+      setShareHelpOpen(true);
+    } finally {
+      setIsSharing(false);
     }
   };
 
+  const whatsappPrefillUrl = useMemo(() => {
+    const text = `Invoice PDF for ${name} (${currentMonth}).\n\nIf the PDF didn't attach automatically, please download it from the app and attach it in WhatsApp.`;
+    return `https://wa.me/?text=${encodeURIComponent(text)}`;
+  }, [currentMonth, name]);
+
   return (
+    <>
     <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden animate-fade-in">
       {/* Header - Always Visible */}
       <button 
@@ -319,13 +336,54 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
             <Button
               className="flex-1 h-12 bg-success text-success-foreground hover:bg-success/90"
               onClick={handleShareWhatsApp}
+              disabled={isSharing}
             >
-              <MessageCircle className="w-5 h-5 mr-2" />
-              WhatsApp
+              {isSharing ? (
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              ) : (
+                <MessageCircle className="w-5 h-5 mr-2" />
+              )}
+              {isSharing ? 'Preparing…' : 'WhatsApp'}
             </Button>
           </div>
         </div>
       </div>
     </div>
+
+    <Dialog open={shareHelpOpen} onOpenChange={setShareHelpOpen}>
+      <DialogContent className="w-[calc(100vw-32px)] max-w-sm rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>Share invoice</DialogTitle>
+          <DialogDescription>
+            Your browser didn’t open the share sheet. Download the PDF and attach it in WhatsApp.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-2">
+          <Button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleExportPDF();
+              setShareHelpOpen(false);
+            }}
+            className="h-12"
+          >
+            <FileText className="w-5 h-5 mr-2" />
+            Download PDF
+          </Button>
+          <Button
+            variant="outline"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(whatsappPrefillUrl, '_blank', 'noopener,noreferrer');
+            }}
+            className="h-12"
+          >
+            <MessageCircle className="w-5 h-5 mr-2" />
+            Open WhatsApp
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
