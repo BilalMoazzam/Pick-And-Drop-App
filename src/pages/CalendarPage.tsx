@@ -343,13 +343,13 @@ const CalendarPage = () => {
 
       {/* Date Attendance Popup */}
       <Dialog open={showDatePopup} onOpenChange={setShowDatePopup}>
-        <DialogContent className="max-w-sm mx-4 rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-center">
-              {selectedDate && format(selectedDate, 'EEEE, MMMM d, yyyy')}
+        <DialogContent className="w-[calc(100vw-32px)] max-w-sm rounded-2xl p-4 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="text-center text-lg">
+              {selectedDate && format(selectedDate, 'EEEE, MMM d, yyyy')}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+          <div className="space-y-2 max-h-[50vh] overflow-y-auto -mx-1 px-1">
             {dateAttendance.length === 0 ? (
               <p className="text-center text-muted-foreground py-4">No attendance data for this date</p>
             ) : (

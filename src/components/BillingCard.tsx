@@ -184,34 +184,32 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
       const fileName = `${name.replace(/\s+/g, '_')}-invoice-${format(new Date(), 'yyyy-MM')}.pdf`;
       const file = new File([blob], fileName, { type: 'application/pdf' });
 
-      const hasShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
-      const canShareFiles =
-        hasShare &&
-        // Some browsers support share(files) but don't implement canShare; prefer trying in that case.
-        (!('canShare' in navigator) ||
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (navigator as any).canShare?.({ files: [file] }));
-
-      if (canShareFiles) {
-        // Share the PDF only (no bill text), user can pick WhatsApp from the share sheet.
-        await navigator.share({
-          files: [file],
-          title: `Invoice - ${name}`,
-        });
-        toast.success('Share sheet opened');
-        return;
+      // Check if Web Share API is available
+      if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+        try {
+          // Try to share with file directly - don't check canShare as it's unreliable
+          await navigator.share({
+            files: [file],
+            title: `Invoice - ${name}`,
+          });
+          toast.success('Shared successfully!');
+          return;
+        } catch (shareError) {
+          // If file sharing fails, try sharing without file (just text with download)
+          if ((shareError as Error).name === 'AbortError') {
+            // User cancelled - don't show any message
+            return;
+          }
+          // File sharing not supported, fall through to download
+          console.log('File sharing not supported, downloading instead');
+        }
       }
 
-      // If file sharing isn't supported on this device/browser, download instead.
+      // Fallback: Download the PDF
       handleExportPDF();
-      toast.info('Your device cannot share PDFs directly. PDF downloaded instead.');
+      toast.info('PDF downloaded - share it manually via WhatsApp');
     } catch (error) {
-      if ((error as Error).name === 'AbortError') {
-        // User cancelled sharing
-        return;
-      }
       console.error('Share failed:', error);
-      // Fallback to download
       handleExportPDF();
     }
   };
