@@ -31,7 +31,6 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
   const presentRides = rideDetails.filter(r => r.attendance === 'present');
   const absentRides = rideDetails.filter(r => r.attendance === 'absent');
 
-  // Show first 3 rides when collapsed
   const previewRides = presentRides.slice(0, 3);
   const hasMoreRides = presentRides.length > 3;
 
@@ -39,31 +38,25 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     
-    // Modern header with warm gradient effect
-    doc.setFillColor(249, 115, 22); // Orange primary
+    doc.setFillColor(249, 115, 22);
     doc.rect(0, 0, pageWidth, 50, 'F');
     
-    // Accent stripe
     doc.setFillColor(234, 88, 12);
     doc.rect(0, 50, pageWidth, 4, 'F');
     
-    // Company branding
     doc.setFontSize(10);
     doc.setTextColor(255, 255, 255);
     doc.text('PICK & DROP SERVICE', 14, 15);
     
-    // Invoice title
     doc.setFontSize(28);
     doc.setTextColor(255, 255, 255);
     doc.text('INVOICE', 14, 35);
     
-    // Invoice details on right
     doc.setFontSize(10);
     doc.text(`Date: ${format(new Date(), 'dd MMM yyyy')}`, pageWidth - 14, 20, { align: 'right' });
     doc.text(`Period: ${currentMonth}`, pageWidth - 14, 28, { align: 'right' });
     doc.text(`Invoice #${format(new Date(), 'yyyyMM')}`, pageWidth - 14, 36, { align: 'right' });
     
-    // Bill To section
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
     doc.text('BILL TO', 14, 68);
@@ -76,12 +69,10 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
     doc.setTextColor(80, 80, 80);
     doc.text(`Phone: ${phone || 'N/A'}`, 14, 86);
     
-    // Separator line
     doc.setDrawColor(230, 230, 230);
     doc.setLineWidth(0.5);
     doc.line(14, 94, pageWidth - 14, 94);
     
-    // Ride Details Table
     const tableData = rideDetails.map((detail, index) => [
       (index + 1).toString(),
       detail.date,
@@ -122,10 +113,8 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
       margin: { left: 14, right: 14 },
     });
     
-    // Summary section
     const finalY = (doc as any).lastAutoTable.finalY + 15;
     
-    // Summary box
     doc.setFillColor(254, 243, 235);
     doc.roundedRect(pageWidth - 100, finalY, 86, 45, 3, 3, 'F');
     
@@ -139,7 +128,6 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
     doc.text(presentRides.length.toString(), pageWidth - 20, finalY + 14, { align: 'right' });
     doc.text(`SAR ${total.toFixed(0)}`, pageWidth - 20, finalY + 26, { align: 'right' });
     
-    // Total line
     doc.setDrawColor(249, 115, 22);
     doc.setLineWidth(0.5);
     doc.line(pageWidth - 94, finalY + 32, pageWidth - 20, finalY + 32);
@@ -150,12 +138,10 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
     doc.setFontSize(14);
     doc.text(`SAR ${total.toFixed(0)}`, pageWidth - 20, finalY + 42, { align: 'right' });
     
-    // Thank you note
     doc.setFontSize(11);
     doc.setTextColor(100, 100, 100);
     doc.text('Thank you for choosing Pick & Drop Service!', 14, finalY + 25);
     
-    // Footer
     doc.setFillColor(250, 250, 250);
     doc.rect(0, 280, pageWidth, 17, 'F');
     
@@ -178,7 +164,6 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
     document.body.appendChild(link);
     link.click();
     link.remove();
-    // Some mobile browsers may cancel the download if we revoke immediately.
     window.setTimeout(() => URL.revokeObjectURL(url), 1500);
     toast.success('PDF downloaded');
   };
@@ -187,81 +172,81 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
     e.stopPropagation();
     if (isSharing) return;
 
-    const toastId = toast.loading('Preparing PDF…');
     setIsSharing(true);
+    const toastId = toast.loading('Preparing invoice…');
+
     try {
       const blob = generatePDFBlob();
       const fileName = `${name.replace(/\s+/g, '_')}-invoice-${format(new Date(), 'yyyy-MM')}.pdf`;
       const file = new File([blob], fileName, { type: 'application/pdf' });
 
-      // Preferred: native share sheet (user can pick WhatsApp)
       if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
-        toast.loading('Opening share sheet…', { id: toastId });
         try {
           await navigator.share({
             files: [file],
             title: `Invoice - ${name}`,
+            text: `Invoice for ${name} (${currentMonth})`,
           });
-          toast.success('Share sheet opened', { id: toastId });
+          toast.success('Shared successfully!', { id: toastId });
           return;
-        } catch (shareError) {
-          if ((shareError as Error).name === 'AbortError') {
+        } catch (shareError: any) {
+          if (shareError?.name === 'AbortError') {
             toast.dismiss(toastId);
             return;
           }
-          console.warn('Share failed, showing manual options:', shareError);
+          console.log('Direct share failed, showing manual options');
         }
       }
 
-      // If sharing isn't supported/failed, show manual options.
       toast.dismiss(toastId);
       setShareHelpOpen(true);
     } catch (error) {
       console.error('Share failed:', error);
-      toast.dismiss(toastId);
+      toast.error('Could not prepare invoice', { id: toastId });
       setShareHelpOpen(true);
     } finally {
       setIsSharing(false);
     }
   };
 
-  const whatsappPrefillUrl = useMemo(() => {
-    const text = `Invoice PDF for ${name} (${currentMonth}).\n\nIf the PDF didn't attach automatically, please download it from the app and attach it in WhatsApp.`;
-    return `https://wa.me/?text=${encodeURIComponent(text)}`;
+  const whatsappMessage = useMemo(() => {
+    return `Invoice PDF for ${name} (${currentMonth}).\n\nIf the PDF didn't attach automatically, please download it from the app and attach it in WhatsApp.`;
   }, [currentMonth, name]);
+
+  const whatsappPrefillUrl = useMemo(() => {
+    return `https://wa.me/?text=${encodeURIComponent(whatsappMessage)}`;
+  }, [whatsappMessage]);
 
   return (
     <>
     <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden animate-fade-in">
-      {/* Header - Always Visible */}
       <button 
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full p-4 text-left"
       >
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-            <User className="w-6 h-6 text-primary" />
+          <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <User className="w-5 h-5 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-lg text-foreground truncate">{name}</h3>
+            <h3 className="font-bold text-base text-foreground truncate">{name}</h3>
             <p className="text-sm text-muted-foreground">
               {rides} ride{rides !== 1 ? 's' : ''} this month
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xl font-bold text-success whitespace-nowrap">
+            <span className="text-lg font-bold text-success whitespace-nowrap">
               SAR {total.toFixed(0)}
             </span>
             <div className={cn(
-              "w-8 h-8 rounded-full flex items-center justify-center bg-muted transition-transform duration-300",
+              "w-7 h-7 rounded-full flex items-center justify-center bg-muted transition-transform duration-300",
               isExpanded && "rotate-180"
             )}>
-              <ChevronDown className="w-5 h-5 text-foreground" />
+              <ChevronDown className="w-4 h-4 text-foreground" />
             </div>
           </div>
         </div>
 
-        {/* Preview - Only when collapsed */}
         {!isExpanded && previewRides.length > 0 && (
           <div className="mt-3 p-3 bg-muted rounded-xl">
             <p className="text-xs font-semibold text-muted-foreground mb-2">Recent Rides:</p>
@@ -282,13 +267,11 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
         )}
       </button>
 
-      {/* Expanded Content */}
       <div className={cn(
         "overflow-hidden transition-all duration-300",
         isExpanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
       )}>
         <div className="px-4 pb-4 space-y-3">
-          {/* All Rides */}
           <div className="p-3 bg-muted rounded-xl max-h-48 overflow-y-auto">
             <p className="text-xs font-semibold text-muted-foreground mb-2">All Rides:</p>
             <div className="space-y-1">
@@ -315,7 +298,6 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
             )}
           </div>
 
-          {/* Summary */}
           <div className="flex items-center justify-between p-3 bg-success/10 rounded-xl">
             <div>
               <p className="text-sm text-muted-foreground">Total ({presentRides.length} rides)</p>
@@ -323,7 +305,6 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -351,19 +332,35 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
     </div>
 
     <Dialog open={shareHelpOpen} onOpenChange={setShareHelpOpen}>
-      <DialogContent className="w-[calc(100vw-32px)] max-w-sm rounded-2xl">
-        <DialogHeader>
-          <DialogTitle>Share invoice</DialogTitle>
-          <DialogDescription>
-            Your browser didn’t open the share sheet. Download the PDF and attach it in WhatsApp.
+      <DialogContent className="w-[calc(100vw-32px)] max-w-sm rounded-2xl p-5">
+        <DialogHeader className="text-left">
+          <DialogTitle className="text-lg">Share Invoice</DialogTitle>
+          <DialogDescription className="text-sm">
+            Direct sharing was blocked. Follow these steps:
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-2">
+        <div className="space-y-3 mt-2">
+          <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-xl">
+            <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold flex-shrink-0">1</span>
+            <div className="text-sm">
+              <p className="font-medium">Download the PDF</p>
+              <p className="text-muted-foreground text-xs">Save the invoice to your device</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-xl">
+            <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold flex-shrink-0">2</span>
+            <div className="text-sm">
+              <p className="font-medium">Open WhatsApp</p>
+              <p className="text-muted-foreground text-xs">Attach the PDF from downloads</p>
+            </div>
+          </div>
+        </div>
+        <div className="grid gap-2 mt-3">
           <Button
             onClick={(e) => {
               e.stopPropagation();
               handleExportPDF();
-              setShareHelpOpen(false);
+              toast.success('PDF downloaded! Now attach it in WhatsApp');
             }}
             className="h-12"
           >
@@ -374,6 +371,7 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
             variant="outline"
             onClick={(e) => {
               e.stopPropagation();
+              setShareHelpOpen(false);
               window.open(whatsappPrefillUrl, '_blank', 'noopener,noreferrer');
             }}
             className="h-12"
