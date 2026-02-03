@@ -1,18 +1,16 @@
 import { useState } from 'react';
-import { ArrowLeft, Calendar } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { format, startOfDay, endOfDay, subDays } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
 import { BottomNav } from '@/components/BottomNav';
 import { RideCard } from '@/components/RideCard';
 import { CompleteRideDialog } from '@/components/CompleteRideDialog';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import { PageHeader } from '@/components/PageHeader';
 import { useRides, Ride } from '@/hooks/useRides';
 import { cn } from '@/lib/utils';
 
 type FilterType = 'all' | 'today' | 'week' | 'month';
 
 const RidesPage = () => {
-  const navigate = useNavigate();
   const { rides, loading, completeRide, deleteRide } = useRides();
   const [filter, setFilter] = useState<FilterType>('all');
   const [completingRide, setCompletingRide] = useState<Ride | null>(null);
@@ -55,30 +53,16 @@ const RidesPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background safe-bottom">
-      {/* Header */}
-      <header className="bg-card border-b border-border px-5 py-4 sticky top-0 z-40">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => navigate('/')}
-              className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-2xl font-bold">All Rides</h1>
-          </div>
-          <ThemeToggle />
-        </div>
-
+    <div className="min-h-screen bg-background safe-bottom flex flex-col">
+      <PageHeader title="All Rides" subtitle={`${filteredRides.length} rides`} variant="card">
         {/* Filter Tabs */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1">
           {filters.map((f) => (
             <button
               key={f.value}
               onClick={() => setFilter(f.value)}
               className={cn(
-                'px-4 py-2 rounded-full text-sm font-semibold transition-all',
+                'px-4 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap flex-shrink-0',
                 filter === f.value
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -88,10 +72,10 @@ const RidesPage = () => {
             </button>
           ))}
         </div>
-      </header>
+      </PageHeader>
 
       {/* Rides List */}
-      <main className="px-5 py-6">
+      <main className="flex-1 overflow-y-auto px-4 py-4">
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3, 4, 5].map((i) => (

@@ -62,20 +62,21 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background safe-bottom">
+    <div className="min-h-screen bg-background safe-bottom flex flex-col">
       {/* Header */}
-      <header className="gradient-warm px-5 pt-6 pb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
+      <header className="gradient-warm px-4 pt-5 pb-6 flex-shrink-0">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2 min-w-0">
             <AnimatedGreeting />
-            <h1 className="text-xl font-bold text-foreground">
-              {format(new Date(), 'EEEE, MMM d')}
-            </h1>
+            <span className="text-foreground/60 mx-1">•</span>
+            <span className="text-base font-semibold text-foreground truncate">
+              {format(new Date(), 'EEE, MMM d')}
+            </span>
           </div>
           <ThemeToggle />
         </div>
 
-        {/* Quick Stats - 2 columns in first row, 1 full width below */}
+        {/* Quick Stats */}
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <StatCard
@@ -102,7 +103,7 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <main className="px-5 py-6">
+      <main className="flex-1 overflow-y-auto px-4 py-4">
         {/* Today's Rides Section */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-foreground flex items-center gap-2">

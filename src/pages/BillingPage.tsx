@@ -1,19 +1,17 @@
 import { useState, useMemo } from 'react';
-import { ArrowLeft, Receipt, TrendingUp, FileText, CalendarDays } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Receipt, TrendingUp, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { BottomNav } from '@/components/BottomNav';
 import { Button } from '@/components/ui/button';
 import { StatCard } from '@/components/StatCard';
 import { BillingCard } from '@/components/BillingCard';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import { PageHeader } from '@/components/PageHeader';
 import { useRides } from '@/hooks/useRides';
 import { usePassengers } from '@/hooks/usePassengers';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const BillingPage = () => {
-  const navigate = useNavigate();
   const { rides, getEarnings, getMonthRides } = useRides();
   const { passengers } = usePassengers();
   const earnings = getEarnings();
@@ -21,7 +19,6 @@ const BillingPage = () => {
 
   const currentMonth = format(new Date(), 'MMMM yyyy');
 
-  // Calculate per-passenger billing for the current month with ride details
   const passengerBilling = useMemo(() => {
     const billing: Record<string, { 
       name: string; 
@@ -232,27 +229,7 @@ const BillingPage = () => {
 
   return (
     <div className="min-h-screen bg-background safe-bottom flex flex-col">
-      {/* Header */}
-      <header className="gradient-warm px-5 pt-6 pb-8 flex-shrink-0">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => navigate('/')}
-              className="w-10 h-10 rounded-xl bg-card flex items-center justify-center"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div className="flex items-center gap-3">
-              <CalendarDays className="w-6 h-6 text-primary" />
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">Billing</h1>
-                <p className="text-foreground/80 font-semibold">{currentMonth}</p>
-              </div>
-            </div>
-          </div>
-          <ThemeToggle />
-        </div>
-
+      <PageHeader title="Billing" subtitle={currentMonth}>
         {/* Monthly Stats */}
         <div className="grid grid-cols-2 gap-3">
           <StatCard
@@ -268,15 +245,15 @@ const BillingPage = () => {
             variant="success"
           />
         </div>
-      </header>
+      </PageHeader>
 
-      {/* Main Content - Scrollable */}
-      <main className="flex-1 overflow-y-auto px-5 py-6">
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto px-4 py-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">Passenger Bills</h2>
+          <h2 className="text-lg font-bold">Passenger Bills</h2>
           <Button variant="outline" size="sm" onClick={handleExportPDF}>
             <FileText className="w-4 h-4" />
-            Export PDF
+            Export
           </Button>
         </div>
 

@@ -1,17 +1,15 @@
 import { useState, useMemo } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, UserCheck, UserX, Minus, Calendar as CalendarIcon } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ChevronLeft, ChevronRight, UserCheck, UserX, Minus, Calendar as CalendarIcon } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, getDay } from 'date-fns';
 import { BottomNav } from '@/components/BottomNav';
 import { Button } from '@/components/ui/button';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import { PageHeader } from '@/components/PageHeader';
 import { useRides } from '@/hooks/useRides';
 import { usePassengers } from '@/hooks/usePassengers';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const CalendarPage = () => {
-  const navigate = useNavigate();
   const { rides } = useRides();
   const { passengers } = usePassengers();
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -25,10 +23,8 @@ const CalendarPage = () => {
   const monthEnd = endOfMonth(currentMonth);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
-  // Get first day of week for padding
   const startDayOfWeek = getDay(monthStart);
 
-  // Get ride status for a specific passenger on a specific date
   const getRideStatus = (passengerId: string, date: Date): 'present' | 'absent' | 'none' => {
     const ride = rides.find(r => {
       const rideDate = new Date(r.pickup_time);
@@ -39,7 +35,6 @@ const CalendarPage = () => {
     return ride.attendance === 'absent' ? 'absent' : 'present';
   };
 
-  // Calculate totals for a specific passenger
   const getPassengerStats = (passengerId: string) => {
     let present = 0;
     let absent = 0;
@@ -49,7 +44,6 @@ const CalendarPage = () => {
       const status = getRideStatus(passengerId, day);
       if (status === 'present') {
         present++;
-        // Find the ride fare for this day
         const ride = rides.find(r => {
           const rideDate = new Date(r.pickup_time);
           return r.passenger_id === passengerId && isSameDay(rideDate, day) && r.status === 'completed' && r.attendance === 'present';
@@ -64,7 +58,6 @@ const CalendarPage = () => {
     return { present, absent, earnings };
   };
 
-  // Get all clients' attendance for a specific date
   const getDateAttendance = (date: Date) => {
     return regularPassengers.map(p => {
       const status = getRideStatus(p.id, date);
@@ -80,7 +73,6 @@ const CalendarPage = () => {
     });
   };
 
-  // Overall stats including total earnings for all clients
   const overallStats = useMemo(() => {
     let totalPresent = 0;
     let totalAbsent = 0;
@@ -102,16 +94,14 @@ const CalendarPage = () => {
   const selectedPassenger = regularPassengers.find(p => p.id === selectedClient);
   const selectedStats = selectedClient ? getPassengerStats(selectedClient) : null;
 
-  // Display stats based on selection
   const displayStats = selectedStats 
     ? { present: selectedStats.present, absent: selectedStats.absent, earnings: selectedStats.earnings }
     : { present: overallStats.totalPresent, absent: overallStats.totalAbsent, earnings: overallStats.totalEarnings };
 
-  const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
   const handleDateClick = (day: Date) => {
     if (!selectedClient) {
-      // Show popup with all clients' attendance for this date
       setSelectedDate(day);
       setShowDatePopup(true);
     }
@@ -121,41 +111,24 @@ const CalendarPage = () => {
 
   return (
     <div className="min-h-screen bg-background safe-bottom flex flex-col">
-      {/* Header */}
-      <header className="gradient-warm px-5 pt-6 pb-4 flex-shrink-0">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => navigate('/')}
-              className="w-10 h-10 rounded-xl bg-card flex items-center justify-center"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-2xl font-bold">Calendar</h1>
-              <p className="text-foreground/80 font-semibold">Monthly Attendance</p>
-            </div>
-          </div>
-          <ThemeToggle />
-        </div>
-
+      <PageHeader title="Calendar" subtitle={format(currentMonth, 'MMMM yyyy')}>
         {/* Month Navigation */}
-        <div className="flex items-center justify-between bg-card rounded-2xl p-4 shadow-sm">
-          <Button variant="ghost" size="icon" onClick={goToPreviousMonth} className="h-10 w-10">
-            <ChevronLeft className="w-6 h-6" />
+        <div className="flex items-center justify-between bg-card rounded-xl p-3 shadow-sm">
+          <Button variant="ghost" size="icon" onClick={goToPreviousMonth} className="h-9 w-9">
+            <ChevronLeft className="w-5 h-5" />
           </Button>
           <div className="text-center">
-            <h2 className="text-xl font-bold">{format(currentMonth, 'MMMM')}</h2>
-            <p className="text-sm text-muted-foreground">{format(currentMonth, 'yyyy')}</p>
+            <h2 className="text-lg font-bold">{format(currentMonth, 'MMMM')}</h2>
+            <p className="text-xs text-muted-foreground">{format(currentMonth, 'yyyy')}</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={goToNextMonth} className="h-10 w-10">
-            <ChevronRight className="w-6 h-6" />
+          <Button variant="ghost" size="icon" onClick={goToNextMonth} className="h-9 w-9">
+            <ChevronRight className="w-5 h-5" />
           </Button>
         </div>
-      </header>
+      </PageHeader>
 
       {/* Main Content - Scrollable */}
-      <main className="flex-1 overflow-y-auto px-4 py-4">
+      <main className="flex-1 overflow-y-auto px-4 py-3">
         {regularPassengers.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-20 h-20 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">

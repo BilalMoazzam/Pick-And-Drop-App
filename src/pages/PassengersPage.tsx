@@ -1,14 +1,13 @@
 import { useState, useMemo } from 'react';
-import { ArrowLeft, Plus, User, Phone, MapPin, Building, Search, Users, UserPlus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Plus, User, Phone, MapPin, Building, Search, Users, UserPlus } from 'lucide-react';
 import { BottomNav } from '@/components/BottomNav';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import { PageHeader } from '@/components/PageHeader';
 import { ClientCard } from '@/components/ClientCard';
 import {
   AlertDialog,
@@ -24,7 +23,6 @@ import { usePassengers, Passenger, NewPassenger } from '@/hooks/usePassengers';
 import { cn } from '@/lib/utils';
 
 const PassengersPage = () => {
-  const navigate = useNavigate();
   const { passengers, loading, addPassenger, updatePassenger, deletePassenger } = usePassengers();
   const [searchQuery, setSearchQuery] = useState('');
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -43,7 +41,6 @@ const PassengersPage = () => {
     is_regular: true,
   });
 
-  // Separate regular and random passengers
   const { regularPassengers, randomPassengers } = useMemo(() => {
     const filtered = passengers.filter(p => 
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -167,33 +164,23 @@ const PassengersPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background safe-bottom">
-      {/* Header */}
-      <header className="bg-card border-b border-border px-5 py-4 sticky top-0 z-40">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => navigate('/')}
-              className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-2xl font-bold">Clients</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Button size="sm" onClick={() => handleOpenSheet()}>
-              <Plus className="w-4 h-4" />
-              Add
-            </Button>
-          </div>
-        </div>
-
+    <div className="min-h-screen bg-background safe-bottom flex flex-col">
+      <PageHeader
+        title="Clients"
+        subtitle={`${passengers.length} total`}
+        variant="card"
+        rightContent={
+          <Button size="sm" onClick={() => handleOpenSheet()}>
+            <Plus className="w-4 h-4" />
+            Add
+          </Button>
+        }
+      >
         {/* Search */}
-        <div className="relative mb-4">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
-            className="input-elderly pl-12"
+            className="h-12 text-base pl-10 rounded-xl"
             placeholder="Search by name or phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -202,21 +189,21 @@ const PassengersPage = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full h-12">
-            <TabsTrigger value="regular" className="flex-1 text-base">
-              <Users className="w-4 h-4 mr-2" />
+          <TabsList className="w-full h-11">
+            <TabsTrigger value="regular" className="flex-1 text-sm">
+              <Users className="w-4 h-4 mr-1.5" />
               Regular ({regularPassengers.length})
             </TabsTrigger>
-            <TabsTrigger value="random" className="flex-1 text-base">
-              <UserPlus className="w-4 h-4 mr-2" />
+            <TabsTrigger value="random" className="flex-1 text-sm">
+              <UserPlus className="w-4 h-4 mr-1.5" />
               Random ({randomPassengers.length})
             </TabsTrigger>
           </TabsList>
         </Tabs>
-      </header>
+      </PageHeader>
 
       {/* Passengers List */}
-      <main className="px-5 py-6">
+      <main className="flex-1 overflow-y-auto px-4 py-4">
         {activeTab === 'regular' && renderPassengerList(
           regularPassengers, 
           'No regular clients yet',
