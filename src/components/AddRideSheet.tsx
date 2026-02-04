@@ -332,7 +332,7 @@ export function AddRideSheet({ open, onOpenChange, passengers, onAddRide }: AddR
 
               <div className="space-y-2">
                 <Label className="text-base font-semibold flex items-center gap-2">
-                  <Banknote className="w-4 h-4" /> Fare (SAR) - Optional
+                  <Banknote className="w-4 h-4" /> Fare (﷼) - Optional
                 </Label>
                 <Input
                   type="number"
@@ -397,7 +397,7 @@ export function AddRideSheet({ open, onOpenChange, passengers, onAddRide }: AddR
 
               <div className="space-y-2">
                 <Label className="text-base font-semibold flex items-center gap-2">
-                  <Banknote className="w-4 h-4" /> Fare (SAR) - Optional
+                  <Banknote className="w-4 h-4" /> Fare (﷼) - Optional
                 </Label>
                 <Input
                   type="number"

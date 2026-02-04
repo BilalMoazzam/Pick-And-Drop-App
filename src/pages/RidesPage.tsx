@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar } from 'lucide-react';
+import { Calendar, Car } from 'lucide-react';
 import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 import { BottomNav } from '@/components/BottomNav';
 import { RideCard } from '@/components/RideCard';
@@ -54,7 +54,13 @@ const RidesPage = () => {
 
   return (
     <div className="min-h-screen bg-background safe-bottom flex flex-col">
-      <PageHeader title="All Rides" subtitle={`${filteredRides.length} rides`} variant="card">
+      <PageHeader
+        title="All Rides"
+        subtitle={`${filteredRides.length} rides`}
+        variant="card"
+        showBack={false}
+        icon={<Car className="w-6 h-6 text-primary" />}
+      >
         {/* Filter Tabs */}
         <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1">
           {filters.map((f) => (

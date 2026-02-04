@@ -133,6 +133,8 @@ interface PageHeaderProps {
   showBack?: boolean;
   variant?: 'warm' | 'card';
   rightContent?: ReactNode;
+  /** Overrides the default time-of-day animated icon (used on the left). */
+  icon?: ReactNode;
   children?: ReactNode;
 }
 
@@ -142,6 +144,7 @@ export function PageHeader({
   showBack = true,
   variant = 'warm',
   rightContent,
+  icon,
   children,
 }: PageHeaderProps) {
   const navigate = useNavigate();
@@ -158,6 +161,7 @@ export function PageHeader({
   const config = timeConfigs[timeOfDay];
 
   const isWarm = variant === 'warm';
+  const hasCustomIcon = !!icon;
 
   return (
     <header className={cn(
@@ -180,14 +184,21 @@ export function PageHeader({
           <div
             className={cn(
               "w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden transition-all duration-500",
-              mounted && "animate-scale-in"
+              mounted && "animate-scale-in",
+              hasCustomIcon && "bg-primary/10 hover-scale"
             )}
-            style={{
-              background: `linear-gradient(135deg, ${config.gradientFrom}20, ${config.gradientTo}30)`,
-              boxShadow: `0 4px 16px ${config.iconColor}25`,
-            }}
+            style={
+              hasCustomIcon
+                ? undefined
+                : {
+                    background: `linear-gradient(135deg, ${config.gradientFrom}20, ${config.gradientTo}30)`,
+                    boxShadow: `0 4px 16px ${config.iconColor}25`,
+                  }
+            }
           >
-            {mounted ? (
+            {hasCustomIcon ? (
+              <div className="w-8 h-8 flex items-center justify-center">{icon}</div>
+            ) : mounted ? (
               <AnimatedTimeIcon timeOfDay={timeOfDay} className="w-8 h-8" />
             ) : (
               <div className="w-8 h-8 rounded-full bg-primary/20 animate-pulse" />

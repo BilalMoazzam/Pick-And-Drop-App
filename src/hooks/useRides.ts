@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { formatSar } from '@/lib/currency';
 
 export interface Ride {
   id: string;
@@ -153,7 +154,7 @@ export function useRides() {
       setRides(prev => prev.map(r => r.id === id ? data as Ride : r));
       toast({
         title: "Ride completed! ✓",
-        description: `Fare: SAR ${fare}`,
+        description: `Fare: ${formatSar(fare)}`,
       });
       return data;
     } catch (error: any) {
