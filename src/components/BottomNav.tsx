@@ -1,4 +1,4 @@
-import { Home, Users, Car, Receipt, CalendarDays } from 'lucide-react';
+import { Home, Users, Car, FileText, CalendarDays } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
@@ -7,7 +7,7 @@ const navItems = [
   { icon: Car, label: 'Rides', path: '/rides' },
   { icon: Users, label: 'Clients', path: '/passengers' },
   { icon: CalendarDays, label: 'Calendar', path: '/calendar' },
-  { icon: Receipt, label: 'Billing', path: '/billing' },
+  { icon: FileText, label: 'Billing', path: '/billing' },
 ];
 
 export function BottomNav() {

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Ride } from '@/hooks/useRides';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { formatSar } from '@/lib/currency';
 
 interface RideCardProps {
   ride: Ride;
@@ -45,7 +46,7 @@ export function RideCard({ ride, onComplete, onCancel, onToggleAttendance, showA
         </div>
         {ride.status === 'completed' && (
           <span className="text-xl font-bold text-success">
-            SAR {Number(ride.fare).toFixed(0)}
+            {formatSar(ride.fare)}
           </span>
         )}
       </div>

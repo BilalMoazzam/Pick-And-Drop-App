@@ -11,6 +11,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { AnimatedGreeting } from '@/components/AnimatedGreeting';
 import { useRides, Ride } from '@/hooks/useRides';
 import { usePassengers } from '@/hooks/usePassengers';
+import { formatSar } from '@/lib/currency';
 
 const Index = () => {
   const { 
@@ -95,7 +96,7 @@ const Index = () => {
           <StatCard
             icon={Wallet}
             label="Today's Earnings"
-            value={`SAR ${earnings.today}`}
+            value={formatSar(earnings.today)}
             subtext="Keep up the great work!"
             variant="success"
           />

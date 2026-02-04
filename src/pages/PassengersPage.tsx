@@ -169,6 +169,8 @@ const PassengersPage = () => {
         title="Clients"
         subtitle={`${passengers.length} total`}
         variant="card"
+        showBack={false}
+        icon={<Users className="w-6 h-6 text-primary" />}
         rightContent={
           <Button size="sm" onClick={() => handleOpenSheet()}>
             <Plus className="w-4 h-4" />

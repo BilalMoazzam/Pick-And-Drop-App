@@ -7,6 +7,7 @@ import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { formatSar, formatSarText } from '@/lib/currency';
 
 interface RideDetail {
   date: string;
@@ -33,6 +34,23 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
 
   const previewRides = presentRides.slice(0, 3);
   const hasMoreRides = presentRides.length > 3;
+
+  const buildFileName = () => `${name.replace(/\s+/g, '_')}-invoice-${format(new Date(), 'yyyy-MM')}.pdf`;
+
+  const downloadPdf = (blob: Blob, fileName: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.rel = 'noopener';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    // Mobile browsers may start the download after a delay.
+    window.setTimeout(() => URL.revokeObjectURL(url), 30000);
+  };
 
   const generatePDFBlob = (): Blob => {
     const doc = new jsPDF();
@@ -77,7 +95,7 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
       (index + 1).toString(),
       detail.date,
       detail.attendance === 'present' ? 'Present' : 'Absent',
-      detail.attendance === 'present' ? `SAR ${detail.fare.toFixed(0)}` : '-',
+      detail.attendance === 'present' ? formatSarText(detail.fare) : '-',
     ]);
     
     autoTable(doc, {
@@ -126,7 +144,7 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
     doc.setFontSize(10);
     doc.setTextColor(50, 50, 50);
     doc.text(presentRides.length.toString(), pageWidth - 20, finalY + 14, { align: 'right' });
-    doc.text(`SAR ${total.toFixed(0)}`, pageWidth - 20, finalY + 26, { align: 'right' });
+    doc.text(formatSarText(total), pageWidth - 20, finalY + 26, { align: 'right' });
     
     doc.setDrawColor(249, 115, 22);
     doc.setLineWidth(0.5);
@@ -136,7 +154,7 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
     doc.setTextColor(249, 115, 22);
     doc.text('TOTAL:', pageWidth - 94, finalY + 42);
     doc.setFontSize(14);
-    doc.text(`SAR ${total.toFixed(0)}`, pageWidth - 20, finalY + 42, { align: 'right' });
+    doc.text(formatSarText(total), pageWidth - 20, finalY + 42, { align: 'right' });
     
     doc.setFontSize(11);
     doc.setTextColor(100, 100, 100);
@@ -156,15 +174,7 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
   const handleExportPDF = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     const blob = generatePDFBlob();
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${name.replace(/\s+/g, '_')}-invoice-${format(new Date(), 'yyyy-MM')}.pdf`;
-    link.rel = 'noopener';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+    downloadPdf(blob, buildFileName());
     toast.success('PDF downloaded');
   };
 
@@ -177,12 +187,16 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
 
     try {
       const blob = generatePDFBlob();
-      const fileName = `${name.replace(/\s+/g, '_')}-invoice-${format(new Date(), 'yyyy-MM')}.pdf`;
+      const fileName = buildFileName();
       const file = new File([blob], fileName, { type: 'application/pdf' });
 
-      if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      const navAny = navigator as any;
+      const supportsShare = typeof navAny?.share === 'function';
+      const supportsFileShare = typeof navAny?.canShare === 'function' ? navAny.canShare({ files: [file] }) : true;
+
+      if (supportsShare && supportsFileShare) {
         try {
-          await navigator.share({
+          await navAny.share({
             files: [file],
             title: `Invoice - ${name}`,
             text: `Invoice for ${name} (${currentMonth})`,
@@ -194,12 +208,19 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
             toast.dismiss(toastId);
             return;
           }
-          console.log('Direct share failed, showing manual options');
+          console.log('Direct share failed, falling back to download + WhatsApp link');
         }
       }
 
-      toast.dismiss(toastId);
-      setShareHelpOpen(true);
+      // Fallback: auto-download the PDF (reliable) + open WhatsApp with the message.
+      downloadPdf(blob, fileName);
+
+      const waWindow = window.open(whatsappPrefillUrl, '_blank', 'noopener,noreferrer');
+      if (!waWindow) {
+        setShareHelpOpen(true);
+      }
+
+      toast.success('PDF downloaded — attach it in WhatsApp', { id: toastId });
     } catch (error) {
       console.error('Share failed:', error);
       toast.error('Could not prepare invoice', { id: toastId });
@@ -236,7 +257,7 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
           </div>
           <div className="flex items-center gap-2">
             <span className="text-lg font-bold text-success whitespace-nowrap">
-              SAR {total.toFixed(0)}
+              {formatSar(total)}
             </span>
             <div className={cn(
               "w-7 h-7 rounded-full flex items-center justify-center bg-muted transition-transform duration-300",
@@ -254,7 +275,7 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
               {previewRides.map((detail, idx) => (
                 <div key={idx} className="flex justify-between text-sm">
                   <span className="text-muted-foreground">📅 {detail.date}</span>
-                  <span className="font-semibold text-foreground">SAR {detail.fare.toFixed(0)}</span>
+                  <span className="font-semibold text-foreground">{formatSar(detail.fare)}</span>
                 </div>
               ))}
               {hasMoreRides && (
@@ -278,7 +299,7 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
               {presentRides.map((detail, idx) => (
                 <div key={idx} className="flex justify-between text-sm">
                   <span className="text-muted-foreground">📅 {detail.date}</span>
-                  <span className="font-semibold text-success">SAR {detail.fare.toFixed(0)}</span>
+                  <span className="font-semibold text-success">{formatSar(detail.fare)}</span>
                 </div>
               ))}
             </div>
@@ -290,7 +311,7 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
                   {absentRides.map((detail, idx) => (
                     <div key={idx} className="flex justify-between text-sm text-destructive/70">
                       <span>❌ {detail.date}</span>
-                      <span className="line-through">SAR {detail.fare.toFixed(0)}</span>
+                      <span className="line-through">{formatSar(detail.fare)}</span>
                     </div>
                   ))}
                 </div>
@@ -301,7 +322,7 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
           <div className="flex items-center justify-between p-3 bg-success/10 rounded-xl">
             <div>
               <p className="text-sm text-muted-foreground">Total ({presentRides.length} rides)</p>
-              <p className="text-2xl font-bold text-success">SAR {total.toFixed(0)}</p>
+              <p className="text-2xl font-bold text-success">{formatSar(total)}</p>
             </div>
           </div>
 
@@ -336,7 +357,7 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
         <DialogHeader className="text-left">
           <DialogTitle className="text-lg">Share Invoice</DialogTitle>
           <DialogDescription className="text-sm">
-            Direct sharing was blocked. Follow these steps:
+              Some phones block direct PDF sharing. The invoice will be downloaded, then you can attach it in WhatsApp.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 mt-2">
@@ -360,7 +381,7 @@ export function BillingCard({ name, phone, rides, total, rideDetails, currentMon
             onClick={(e) => {
               e.stopPropagation();
               handleExportPDF();
-              toast.success('PDF downloaded! Now attach it in WhatsApp');
+              toast.success('PDF downloaded — now attach it in WhatsApp');
             }}
             className="h-12"
           >

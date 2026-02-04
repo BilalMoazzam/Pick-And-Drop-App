@@ -8,6 +8,7 @@ import { BillingCard } from '@/components/BillingCard';
 import { PageHeader } from '@/components/PageHeader';
 import { useRides } from '@/hooks/useRides';
 import { usePassengers } from '@/hooks/usePassengers';
+import { formatSar } from '@/lib/currency';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -229,7 +230,12 @@ const BillingPage = () => {
 
   return (
     <div className="min-h-screen bg-background safe-bottom flex flex-col">
-      <PageHeader title="Billing" subtitle={currentMonth}>
+      <PageHeader
+        title="Billing"
+        subtitle={currentMonth}
+        showBack={false}
+        icon={<FileText className="w-6 h-6 text-primary" />}
+      >
         {/* Monthly Stats */}
         <div className="grid grid-cols-2 gap-3">
           <StatCard
@@ -241,7 +247,7 @@ const BillingPage = () => {
           <StatCard
             icon={Receipt}
             label="Month Earnings"
-            value={`SAR ${earnings.month}`}
+            value={formatSar(earnings.month)}
             variant="success"
           />
         </div>
@@ -299,7 +305,7 @@ const BillingPage = () => {
             </div>
             <div className="flex justify-between text-xl pt-2 border-t border-primary-foreground/20">
               <span>Total Earnings</span>
-              <span className="font-bold">SAR {earnings.month.toFixed(0)}</span>
+              <span className="font-bold">{formatSar(earnings.month)}</span>
             </div>
           </div>
         </div>

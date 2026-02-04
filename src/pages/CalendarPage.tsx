@@ -8,6 +8,7 @@ import { useRides } from '@/hooks/useRides';
 import { usePassengers } from '@/hooks/usePassengers';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { formatSar } from '@/lib/currency';
 
 const CalendarPage = () => {
   const { rides } = useRides();
@@ -111,7 +112,12 @@ const CalendarPage = () => {
 
   return (
     <div className="min-h-screen bg-background safe-bottom flex flex-col">
-      <PageHeader title="Calendar" subtitle={format(currentMonth, 'MMMM yyyy')}>
+      <PageHeader
+        title="Calendar"
+        subtitle={format(currentMonth, 'MMMM yyyy')}
+        showBack={false}
+        icon={<CalendarIcon className="w-6 h-6 text-primary" />}
+      >
         {/* Month Navigation */}
         <div className="flex items-center justify-between bg-card rounded-xl p-3 shadow-sm">
           <Button variant="ghost" size="icon" onClick={goToPreviousMonth} className="h-9 w-9">
@@ -260,7 +266,7 @@ const CalendarPage = () => {
                 {selectedClient ? `${selectedPassenger?.name}'s Earnings` : 'Total Earnings This Month'}
               </p>
               <p className="text-4xl font-bold text-primary">
-                SAR {displayStats.earnings.toFixed(0)}
+                {formatSar(displayStats.earnings)}
               </p>
             </div>
 
@@ -348,7 +354,7 @@ const CalendarPage = () => {
                     <div>
                       <p className="font-semibold">{passenger.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {status === 'present' && `Present - SAR ${fare}`}
+                        {status === 'present' && `Present - ${formatSar(fare)}`}
                         {status === 'absent' && 'Absent'}
                         {status === 'none' && 'No ride scheduled'}
                       </p>
@@ -376,7 +382,7 @@ const CalendarPage = () => {
                 </span>
               </div>
               <p className="text-center mt-2 text-lg font-bold text-primary">
-                Total: SAR {dateAttendance.reduce((sum, d) => sum + d.fare, 0)}
+                Total: {formatSar(dateAttendance.reduce((sum, d) => sum + d.fare, 0))}
               </p>
             </div>
           )}

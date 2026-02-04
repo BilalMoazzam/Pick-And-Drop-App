@@ -54,7 +54,7 @@ export function CompleteRideDialog({
           <div className="space-y-3">
             <Label className="text-lg font-semibold flex items-center gap-2">
               <Banknote className="w-5 h-5 text-success" />
-              Enter Fare (SAR)
+              Enter Fare (﷼)
             </Label>
             <Input
               type="number"
