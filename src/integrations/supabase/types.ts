@@ -23,6 +23,7 @@ export type Database = {
           passenger_id: string | null
           total_fare: number | null
           total_rides: number | null
+          user_id: string | null
           year: number
         }
         Insert: {
@@ -33,6 +34,7 @@ export type Database = {
           passenger_id?: string | null
           total_fare?: number | null
           total_rides?: number | null
+          user_id?: string | null
           year: number
         }
         Update: {
@@ -43,6 +45,7 @@ export type Database = {
           passenger_id?: string | null
           total_fare?: number | null
           total_rides?: number | null
+          user_id?: string | null
           year?: number
         }
         Relationships: [
@@ -67,6 +70,7 @@ export type Database = {
           profession: string | null
           school_office_info: string | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -79,6 +83,7 @@ export type Database = {
           profession?: string | null
           school_office_info?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -91,6 +96,7 @@ export type Database = {
           profession?: string | null
           school_office_info?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -109,6 +115,7 @@ export type Database = {
           pickup_time: string
           status: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           attendance?: string
@@ -124,6 +131,7 @@ export type Database = {
           pickup_time: string
           status?: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           attendance?: string
@@ -139,6 +147,7 @@ export type Database = {
           pickup_time?: string
           status?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
