@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { formatSar } from '@/lib/currency';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface Ride {
   id: string;
@@ -37,8 +38,15 @@ export function useRides() {
   const [rides, setRides] = useState<Ride[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const fetchRides = async () => {
+    if (!user) {
+      setRides([]);
+      setLoading(false);
+      return;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('rides')
@@ -59,10 +67,19 @@ export function useRides() {
   };
 
   const addRide = async (ride: NewRide) => {
+    if (!user) {
+      toast({
+        title: "Please sign in",
+        description: "You must be logged in to add rides.",
+        variant: "destructive",
+      });
+      return null;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('rides')
-        .insert([ride])
+        .insert([{ ...ride, user_id: user.id }])
         .select()
         .single();
 
@@ -242,7 +259,7 @@ export function useRides() {
 
   useEffect(() => {
     fetchRides();
-  }, []);
+  }, [user]);
 
   return {
     rides,
