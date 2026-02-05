@@ -9,6 +9,7 @@ import { AddRideSheet } from '@/components/AddRideSheet';
 import { CompleteRideDialog } from '@/components/CompleteRideDialog';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { AnimatedGreeting } from '@/components/AnimatedGreeting';
+import { UserMenu } from '@/components/UserMenu';
 import { useRides, Ride } from '@/hooks/useRides';
 import { usePassengers } from '@/hooks/usePassengers';
 import { formatSar } from '@/lib/currency';
@@ -74,7 +75,10 @@ const Index = () => {
               {format(new Date(), 'EEE, MMM d')}
             </span>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <UserMenu />
+          </div>
         </div>
 
         {/* Quick Stats */}

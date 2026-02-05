@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface Passenger {
   id: string;
@@ -29,8 +30,15 @@ export function usePassengers() {
   const [passengers, setPassengers] = useState<Passenger[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const fetchPassengers = async () => {
+    if (!user) {
+      setPassengers([]);
+      setLoading(false);
+      return;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('passengers')
@@ -51,10 +59,19 @@ export function usePassengers() {
   };
 
   const addPassenger = async (passenger: NewPassenger) => {
+    if (!user) {
+      toast({
+        title: "Please sign in",
+        description: "You must be logged in to add passengers.",
+        variant: "destructive",
+      });
+      return null;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('passengers')
-        .insert([passenger])
+        .insert([{ ...passenger, user_id: user.id }])
         .select()
         .single();
 
@@ -130,7 +147,7 @@ export function usePassengers() {
 
   useEffect(() => {
     fetchPassengers();
-  }, []);
+  }, [user]);
 
   return {
     passengers,
