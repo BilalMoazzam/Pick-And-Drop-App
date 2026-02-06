@@ -6,6 +6,7 @@ import { RideCard } from '@/components/RideCard';
 import { StatCard } from '@/components/StatCard';
 import { AddActionMenu } from '@/components/AddActionMenu';
 import { AddRideSheet } from '@/components/AddRideSheet';
+import { AddClientSheet } from '@/components/AddClientSheet';
 import { CompleteRideDialog } from '@/components/CompleteRideDialog';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { AnimatedGreeting } from '@/components/AnimatedGreeting';
@@ -27,10 +28,12 @@ const Index = () => {
     getMonthRides, 
     getEarnings 
   } = useRides();
-  const { passengers } = usePassengers();
+  const { passengers, addPassenger } = usePassengers();
   
   const [completingRide, setCompletingRide] = useState<Ride | null>(null);
   const [addRideOpen, setAddRideOpen] = useState(false);
+  const [addClientOpen, setAddClientOpen] = useState(false);
+  const [isRegularClient, setIsRegularClient] = useState(true);
 
   const todayRides = getTodayRides();
   const scheduledToday = todayRides.filter(r => r.status === 'scheduled');
@@ -63,22 +66,30 @@ const Index = () => {
     setAddRideOpen(true);
   };
 
+  const handleAddClient = (isRegular: boolean) => {
+    setIsRegularClient(isRegular);
+    setAddClientOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-background safe-bottom flex flex-col">
       {/* Header */}
       <header className="gradient-warm px-4 pt-5 pb-6 flex-shrink-0">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2 min-w-0">
+        {/* Top Row: Date, Theme Toggle */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
             <AnimatedGreeting />
             <span className="text-foreground/60 mx-1">•</span>
-            <span className="text-base font-semibold text-foreground truncate">
+            <span className="text-base font-semibold text-foreground">
               {format(new Date(), 'EEE, MMM d')}
             </span>
           </div>
-          <div className="flex items-center gap-1">
-            <ThemeToggle />
-            <UserMenu />
-          </div>
+          <ThemeToggle />
+        </div>
+
+        {/* User Menu Row */}
+        <div className="flex items-center justify-end mb-4">
+          <UserMenu />
         </div>
 
         {/* Quick Stats */}
@@ -137,7 +148,7 @@ const Index = () => {
               No rides today
             </h3>
             <p className="text-muted-foreground">
-              Tap the + button to add a client
+              Tap the + button to add a client or ride
             </p>
           </div>
         ) : (
@@ -171,7 +182,10 @@ const Index = () => {
       </main>
 
       {/* Floating Action Menu */}
-      <AddActionMenu onAddRide={handleAddRide} />
+      <AddActionMenu 
+        onAddRide={handleAddRide} 
+        onAddClient={handleAddClient}
+      />
 
       {/* Add Ride Sheet */}
       <AddRideSheet
@@ -179,6 +193,14 @@ const Index = () => {
         onOpenChange={setAddRideOpen}
         passengers={passengers}
         onAddRide={addRide}
+      />
+
+      {/* Add Client Sheet */}
+      <AddClientSheet
+        open={addClientOpen}
+        onOpenChange={setAddClientOpen}
+        isRegular={isRegularClient}
+        onAddClient={addPassenger}
       />
 
       {/* Complete Ride Dialog */}
