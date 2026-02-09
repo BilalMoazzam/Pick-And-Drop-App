@@ -75,21 +75,18 @@ const Index = () => {
     <div className="min-h-screen bg-background safe-bottom flex flex-col">
       {/* Header */}
       <header className="gradient-warm px-4 pt-5 pb-6 flex-shrink-0">
-        {/* Top Row: Date, Theme Toggle */}
+        {/* Row 1: Greeting and User Menu */}
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <AnimatedGreeting />
-            <span className="text-foreground/60 mx-1">•</span>
-            <span className="text-base font-semibold text-foreground">
-              {format(new Date(), 'EEE, MMM d')}
-            </span>
-          </div>
-          <ThemeToggle />
+          <AnimatedGreeting />
+          <UserMenu />
         </div>
 
-        {/* User Menu Row */}
-        <div className="flex items-center justify-end mb-4">
-          <UserMenu />
+        {/* Row 2: Day, Date and Theme Toggle */}
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-base font-semibold text-foreground">
+            {format(new Date(), 'EEEE, MMM d')}
+          </span>
+          <ThemeToggle />
         </div>
 
         {/* Quick Stats */}
